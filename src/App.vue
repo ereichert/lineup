@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { RouterLink, RouterView } from 'vue-router'
-import HelloWorld from './components/HelloWorld.vue'
+// import { RouterLink, RouterView } from 'vue-router'
+// import HelloWorld from './components/HelloWorld.vue'
+import BattingLineup from './components/BattingLineup.vue'
 </script>
 
 <template>
@@ -21,39 +22,7 @@ import HelloWorld from './components/HelloWorld.vue'
     <div class="container">
       <div class="column">
         <h2>Batting Lineup</h2>
-        <select>
-          <option>Dropdown 1</option>
-        </select>
-        <select>
-          <option>Dropdown 2</option>
-        </select>
-        <select>
-          <option>Dropdown 3</option>
-        </select>
-        <select>
-          <option>Dropdown 4</option>
-        </select>
-        <select>
-          <option>Dropdown 5</option>
-        </select>
-        <select>
-          <option>Dropdown 6</option>
-        </select>
-        <select>
-          <option>Dropdown 7</option>
-        </select>
-        <select>
-          <option>Dropdown 8</option>
-        </select>
-        <select>
-          <option>Dropdown 9</option>
-        </select>
-        <select>
-          <option>Dropdown 10</option>
-        </select>
-        <select>
-          <option>Dropdown 11</option>
-        </select>
+        <BattingLineup></BattingLineup>
       </div>
       <div class="column">
         <h2>Fielding Lineup</h2>
