@@ -12,12 +12,12 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{
-    (event: 'player-selected', dropdownId: number, playerId: number,): void
+    (event: 'player-selected', dropdownId: string, playerId: number,): void
 }>()
 
 const handlePlayerSelected = (event: Event) => {
     const selectElement = event.target as HTMLSelectElement
     const selectedIndex = selectElement.selectedIndex
-    emit('player-selected', parseInt(selectElement.id), selectedIndex)
+    emit('player-selected', selectElement.id, selectedIndex)
 }
 </script>

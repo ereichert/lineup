@@ -24,21 +24,19 @@ const batters = [
     'Batter 11'
 ]
 
-// Each dropdown has a value of 0 if no batter is chosen, otherwise it is the batter id.
-const dropdownSelections: Ref<number[]> = ref(Array(batters.length).fill(0));
+// A dropdown will not have an entry unless a player has been chosen for that position in the batting order.
+const dropdownSelections: Ref<{ [dropdownId: string]: number }> = ref({});
 
-const updateBatters = (dropdownId: number, batterId: number,) => {
+const updateBatters = (dropdownId: string, batterId: number) => {
     dropdownSelections.value[dropdownId] = batterId;
 }
 
-const isBatterChosenMultipleTimes = (dropdownId: number) => {
-    // If no batter is chosen, there is no conflict
-    if (dropdownSelections.value[dropdownId] === 0) {
-        return false;
-    }
-
-    // Check if the same batter is chosen more than once
-    return dropdownSelections.value.filter((val) => val === dropdownSelections.value[dropdownId]).length > 1;
+const isBatterChosenMultipleTimes = (dropdownId: string) => {
+    // Iterate through the dictionary of batting positions which have been filled with player selections.
+    // Filter the dictionary values leaving an array whose length represents the number of batting positions occupied by
+    // the same player. If the array is greater than 1 that means the same player has been assigned to more than 1
+    // batting position and the batting lineup is incorrect.
+    return Object.values(dropdownSelections.value).filter((val) => val === dropdownSelections.value[dropdownId]).length > 1;
 }
 
 </script>

@@ -2,6 +2,12 @@
 // import { RouterLink, RouterView } from 'vue-router'
 // import HelloWorld from './components/HelloWorld.vue'
 import BattingLineup from './components/BattingLineup.vue'
+import FieldingLineup from './components/FieldingLineup.vue';
+
+// TODO: Number of innings should be configurable.
+const NUM_INNINGS = 6
+// TODO: Fielding positions should be configurable.
+const NUM_FIELDING_POSITIONS = 9
 </script>
 
 <template>
@@ -26,107 +32,8 @@ import BattingLineup from './components/BattingLineup.vue'
       </div>
       <div class="column">
         <h2>Fielding Lineup</h2>
-        <div class="grid">
-          <div class="grid-row inning-header">
-            <div class="grid-cell">Position</div>
-            <div class="grid-cell">Inning 1</div>
-            <div class="grid-cell">Inning 2</div>
-            <div class="grid-cell">Inning 3</div>
-            <div class="grid-cell">Inning 4</div>
-            <div class="grid-cell">Inning 5</div>
-            <div class="grid-cell">Inning 6</div>
-          </div>
-          <div class="grid-row">
-            <div class="grid-cell position-header">Catcher</div>
-            <div class="grid-cell">Row 1, Cell 1</div>
-            <div class="grid-cell">Row 1, Cell 2</div>
-            <div class="grid-cell">Row 1, Cell 3</div>
-            <div class="grid-cell">Row 1, Cell 4</div>
-            <div class="grid-cell">Row 1, Cell 5</div>
-            <div class="grid-cell">Row 1, Cell 6</div>
-          </div>
-          <div class="grid-row">
-            <div class="grid-cell position-header">First Base</div>
-            <div class="grid-cell">Row 2, Cell 1</div>
-            <div class="grid-cell">Row 2, Cell 2</div>
-            <div class="grid-cell">Row 2, Cell 3</div>
-            <div class="grid-cell">Row 2, Cell 4</div>
-            <div class="grid-cell">Row 2, Cell 5</div>
-            <div class="grid-cell">Row 2, Cell 6</div>
-          </div>
-          <div class="grid-row">
-            <div class="grid-cell position-header">Second Base</div>
-            <div class="grid-cell">Row 3, Cell 1</div>
-            <div class="grid-cell">Row 3, Cell 2</div>
-            <div class="grid-cell">Row 3, Cell 3</div>
-            <div class="grid-cell">Row 3, Cell 4</div>
-            <div class="grid-cell">Row 3, Cell 5</div>
-            <div class="grid-cell">Row 3, Cell 6</div>
-          </div>
-          <div class="grid-row">
-            <div class="grid-cell position-header">Shortstop</div>
-            <div class="grid-cell">Row 4, Cell 1</div>
-            <div class="grid-cell">Row 4, Cell 2</div>
-            <div class="grid-cell">Row 4, Cell 3</div>
-            <div class="grid-cell">Row 4, Cell 4</div>
-            <div class="grid-cell">Row 4, Cell 5</div>
-            <div class="grid-cell">Row 4, Cell 6</div>
-          </div>
-          <div class="grid-row">
-            <div class="grid-cell position-header">Third Base</div>
-            <div class="grid-cell">Row 5, Cell 1</div>
-            <div class="grid-cell">Row 5, Cell 2</div>
-            <div class="grid-cell">Row 5, Cell 3</div>
-            <div class="grid-cell">Row 5, Cell 4</div>
-            <div class="grid-cell">Row 5, Cell 5</div>
-            <div class="grid-cell">Row 5, Cell 6</div>
-          </div>
-          <div class="grid-row">
-            <div class="grid-cell position-header">Left Field</div>
-            <div class="grid-cell">Row 6, Cell 1</div>
-            <div class="grid-cell">Row 6, Cell 2</div>
-            <div class="grid-cell">Row 6, Cell 3</div>
-            <div class="grid-cell">Row 6, Cell 4</div>
-            <div class="grid-cell">Row 6, Cell 5</div>
-            <div class="grid-cell">Row 6, Cell 6</div>
-          </div>
-          <div class="grid-row">
-            <div class="grid-cell position-header">Center Field</div>
-            <div class="grid-cell">Row 7, Cell 1</div>
-            <div class="grid-cell">Row 7, Cell 2</div>
-            <div class="grid-cell">Row 7, Cell 3</div>
-            <div class="grid-cell">Row 7, Cell 4</div>
-            <div class="grid-cell">Row 7, Cell 5</div>
-            <div class="grid-cell">Row 7, Cell 6</div>
-          </div>
-          <div class="grid-row">
-            <div class="grid-cell position-header">Right Field</div>
-            <div class="grid-cell">Row 8, Cell 1</div>
-            <div class="grid-cell">Row 8, Cell 2</div>
-            <div class="grid-cell">Row 8, Cell 3</div>
-            <div class="grid-cell">Row 8, Cell 4</div>
-            <div class="grid-cell">Row 8, Cell 5</div>
-            <div class="grid-cell">Row 8, Cell 6</div>
-          </div>
-          <div class="grid-row">
-            <div class="grid-cell position-header">Bench</div>
-            <div class="grid-cell">Row 9, Cell 1</div>
-            <div class="grid-cell">Row 9, Cell 2</div>
-            <div class="grid-cell">Row 9, Cell 3</div>
-            <div class="grid-cell">Row 9, Cell 4</div>
-            <div class="grid-cell">Row 9, Cell 5</div>
-            <div class="grid-cell">Row 9, Cell 6</div>
-          </div>
-          <div class="grid-row">
-            <div class="grid-cell position-header">Bench</div>
-            <div class="grid-cell">Row 10, Cell 1</div>
-            <div class="grid-cell">Row 10, Cell 2</div>
-            <div class="grid-cell">Row 10, Cell 3</div>
-            <div class="grid-cell">Row 10, Cell 4</div>
-            <div class="grid-cell">Row 10, Cell 5</div>
-            <div class="grid-cell">Row 10, Cell 6</div>
-          </div>
-        </div>
+        <FieldingLineup :num-fielding-positions=NUM_FIELDING_POSITIONS :num-innings=NUM_INNINGS>
+        </FieldingLineup>
       </div>
     </div>
   </body>
@@ -148,36 +55,6 @@ body {
 
 .column {
   flex: 1;
-}
-
-select {
-  width: 100%;
-  margin-bottom: 10px;
-  padding: 5px;
-}
-
-.grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 1px;
-  border: 1px solid #ddd;
-}
-
-.grid-row {
-  display: contents;
-}
-
-.grid-cell {
-  background-color: #fff;
-  border: 1px solid #ddd;
-  padding: 8px;
-  text-align: left;
-}
-
-.inning-header .grid-cell,
-.position-header {
-  background-color: #f2f2f2;
-  font-weight: bold;
 }
 
 /* header {
