@@ -1,23 +1,27 @@
 <template>
-    <select @change="handlePlayerSelected($event)" :id="id">
-        <option selected>Select Player</option>
-        <option v-for="player in players" :key="player">{{ player }}</option>
+    <select @change="handlePlayerSelected($event)" :id="dropdownId">
+        <option value="">Select Player</option>
+        <option v-for="player in players" :key="player.id" :value="player.id" :selected="selected == player.id">{{
+            player.name }}
+        </option>
     </select>
 </template>
 
 <script setup lang="ts">
+import type Player from '@/models/Player';
+
 defineProps<{
-    players: string[],
-    id: string
+    players: Player[],
+    dropdownId: string,
+    selected: string | undefined,
 }>()
 
 const emit = defineEmits<{
-    (event: 'player-selected', dropdownId: string, playerId: number,): void
+    (event: 'player-selected', dropdownId: string, playerId: string): void
 }>()
 
 const handlePlayerSelected = (event: Event) => {
     const selectElement = event.target as HTMLSelectElement
-    const selectedIndex = selectElement.selectedIndex
-    emit('player-selected', selectElement.id, selectedIndex)
+    emit('player-selected', selectElement.id, selectElement.value)
 }
 </script>

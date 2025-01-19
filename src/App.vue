@@ -1,27 +1,11 @@
 <script setup lang="ts">
-import BattingLineup from './components/BattingLineup.vue'
-import FieldingLineup from './components/FieldingLineup.vue';
-
-// TODO: Number of innings should be configurable.
-const NUM_INNINGS = 6
-// TODO: Fielding positions should be configurable.
-const NUM_FIELDING_POSITIONS = 9
+import { RouterView } from 'vue-router';
 </script>
 
 <template>
 
   <body>
-    <div class="container">
-      <div class="column">
-        <h2>Batting Lineup</h2>
-        <BattingLineup></BattingLineup>
-      </div>
-      <div class="column">
-        <h2>Fielding Lineup</h2>
-        <FieldingLineup :num-fielding-positions=NUM_FIELDING_POSITIONS :num-innings=NUM_INNINGS>
-        </FieldingLineup>
-      </div>
-    </div>
+    <RouterView />
   </body>
 </template>
 
@@ -39,5 +23,50 @@ body {
 
 .column {
   flex: 1;
+}
+
+/* The following is for the printable version. */
+.print-batting-grid {
+  display: inline-grid;
+  grid-template-columns: 1fr;
+}
+
+.print-batting-grid-row {
+  display: contents;
+}
+
+.print-batting-grid-cell {
+  border: 1px solid #000;
+  padding: 8px;
+}
+
+.print-fielding-grid {
+  display: inline-grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1px;
+  border: 1px solid #ddd;
+}
+
+.print-fielding-grid-row {
+  display: contents;
+}
+
+.print-fielding-grid-cell {
+  background-color: #fff;
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+}
+
+.inning-header .print-fielding-grid-cell,
+.position-header {
+  background-color: #f2f2f2;
+  font-weight: bold;
+}
+
+@media print {
+  .page-break {
+    page-break-after: always;
+  }
 }
 </style>
