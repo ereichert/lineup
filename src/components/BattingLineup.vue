@@ -31,7 +31,7 @@ const updateBatters = (dropdownId: string, batterId: number) => {
     dropdownSelections.value[dropdownId] = batterId;
 }
 
-const isBatterChosenMultipleTimes = (dropdownId: string) => {
+const isBatterChosenMultipleTimes = (dropdownId: number) => {
     // Iterate through the dictionary of batting positions which have been filled with player selections.
     // Filter the dictionary values leaving an array whose length represents the number of batting positions occupied by
     // the same player. If the array is greater than 1 that means the same player has been assigned to more than 1
