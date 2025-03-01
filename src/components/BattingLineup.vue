@@ -11,7 +11,7 @@ import { usePlayersStore } from '@/stores/players';
 import PlayerDropdown from './PlayerDropdown.vue';
 import { useLineupsStore } from '@/stores/lineups';
 
-const batters = usePlayersStore().players;
+const batters = usePlayersStore().getPlayers;
 const { battingLineup, isBatterChosenMultipleTimes, updateBattingLineup } = useLineupsStore();
 </script>
 

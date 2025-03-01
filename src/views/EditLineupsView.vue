@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import BattingLineup from '@/components/BattingLineup.vue'
 import FieldingLineup from '@/components/FieldingLineup.vue'
+import { useGameConfigStore } from '@/stores/game-config';
 
-// TODO: Number of innings should be configurable.
-const NUM_INNINGS = 6
+const { numInnings } = useGameConfigStore()
 </script>
 
 <template>
@@ -14,7 +14,7 @@ const NUM_INNINGS = 6
         </div>
         <div class="column">
             <h2>Fielding Lineup</h2>
-            <FieldingLineup :num-innings=NUM_INNINGS>
+            <FieldingLineup :num-innings=numInnings>
             </FieldingLineup>
         </div>
     </div>

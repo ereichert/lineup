@@ -26,7 +26,7 @@ import PlayerDropdown from './PlayerDropdown.vue';
 import { usePlayersStore } from '@/stores/players';
 import { useLineupsStore } from '@/stores/lineups';
 
-const players = usePlayersStore().players
+const players = usePlayersStore().getPlayers
 defineProps<{
     numInnings: number,
 }>()

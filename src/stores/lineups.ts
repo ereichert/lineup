@@ -1,19 +1,6 @@
 import { defineStore } from 'pinia'
 import { usePlayersStore } from './players'
-
-// TODO: Move these to a configuration store
-// TODO: The number of innings needs to be configurable.
-const NUMBER_OF_INNINGS = 6
-const FIELDING_POSITIONS = [
-  'Catcher',
-  'First',
-  'Second',
-  'Shortstop',
-  'Third',
-  'Left',
-  'Center',
-  'Right'
-]
+import { useGameConfigStore } from './game-config'
 
 const splitFieldingPositionId = (
   fieldPositionId: string
@@ -24,10 +11,11 @@ const splitFieldingPositionId = (
 }
 
 const initFieldingLineup = (): Array<Map<string, string>> => {
-  const fieldingLineup: Array<Map<string, string>> = new Array(NUMBER_OF_INNINGS)
+  const { numInnings, fieldingPositions } = useGameConfigStore()
+  const fieldingLineup: Array<Map<string, string>> = new Array(numInnings)
   for (let i = 0; i < fieldingLineup.length; i++) {
     const inningLineup = new Map<string, string>(
-      FIELDING_POSITIONS.map((position) => {
+      fieldingPositions.map((position) => {
         return [position.toLowerCase(), position]
       })
     )
@@ -37,9 +25,10 @@ const initFieldingLineup = (): Array<Map<string, string>> => {
 }
 
 const initFieldingPositions = (): Array<string> => {
-  const { players } = usePlayersStore()
-  const finalPositionsList: Array<string> = [...FIELDING_POSITIONS]
-  for (let i = 0; i < players.length - FIELDING_POSITIONS.length; i++) {
+  const { getPlayers: players } = usePlayersStore()
+  const { fieldingPositions } = useGameConfigStore()
+  const finalPositionsList: Array<string> = [...fieldingPositions]
+  for (let i = 0; i < players.length - fieldingPositions.length; i++) {
     finalPositionsList.push(`Bench ${i + 1}`)
   }
   return finalPositionsList

@@ -7,7 +7,7 @@ export const usePlayersStore = defineStore('playersStore', {
     return {
       //TODO: Get the players from a textarea or upload
       // TODO: This probably needs to be a map from ID to player for easy lookups.
-      roster: [
+      players: [
         new Player('01951f0d-77fd-70a7-a372-83ca9ea40b85', 'Player A'),
         new Player('01951f0d-77fd-7550-86d0-2e58561ecefc', 'Player B'),
         new Player('01951f0d-77fd-7a5b-ab23-bb9b3bec5014', 'Player C'),
@@ -23,10 +23,10 @@ export const usePlayersStore = defineStore('playersStore', {
     }
   },
   getters: {
-    players: (state) => state.roster,
+    getPlayers: (state) => state.players,
     lookupPlayer: (state) => {
       return (playerId: string): Player | undefined => {
-        return state.roster.find((player) => player.id === playerId)
+        return state.players.find((player) => player.id === playerId)
       }
     }
   }
