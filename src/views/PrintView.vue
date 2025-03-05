@@ -1,5 +1,5 @@
 <template>
-    <RouterLink to="/">Go to edit view.</RouterLink>
+    <RouterLink to="/" class="hidden-print">Go to edit view.</RouterLink>
     <!-- TODO getFieldingLineupPrintView is probably called every loop we need to find a way to call it once. -->
     <div v-for="inningLineup in getFieldingLineupPrintView()" :key="inningLineup.inning">
         <h1>Inning {{ inningLineup.inning }}</h1>
@@ -31,7 +31,7 @@
         </div>
         <div class="page-break"> </div>
     </div>
-    <RouterLink to="/">Go to edit view.</RouterLink>
+    <RouterLink to="/" class="hidden-print">Go to edit view.</RouterLink>
 </template>
 
 <script setup lang="ts">
@@ -89,6 +89,10 @@ const getBattingLineupPrintView = (): BattingAssignmentPrintView[] => {
 @media print {
     .page-break {
         page-break-after: always;
+    }
+
+    .hidden-print {
+        display: none !important;
     }
 }
 </style>
