@@ -2,12 +2,8 @@
     <div class="grid">
         <div class="grid-row inning-header">
             <div class="grid-cell">Position</div>
-            <div class="grid-cell">Inning 1</div>
-            <div class="grid-cell">Inning 2</div>
-            <div class="grid-cell">Inning 3</div>
-            <div class="grid-cell">Inning 4</div>
-            <div class="grid-cell">Inning 5</div>
-            <div class="grid-cell">Inning 6</div>
+            <div v-for="numInning in numInnings" class="grid-cell" :key="`inning-${numInning}`">Inning {{ numInning }}
+            </div>
         </div>
         <div v-for="position in fieldingAndBenchPositions" class="grid-row" :key="position.toLowerCase()">
             <div class="grid-cell position-header">{{ position }}</div>
@@ -37,7 +33,7 @@ const { fieldingLineup, fieldingAndBenchPositions, updateFieldingLineup, isField
 <style scoped>
 .grid {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
+    grid-template-columns: repeat(v-bind(numInnings + 1), 1fr);
     gap: 1px;
     border: 1px solid #ddd;
 }
