@@ -19,6 +19,9 @@ const router = createRouter({
             component: PrintView,
             // TODO: When the validation fails errors should be shown on the edit lineup screen.
             beforeEnter: (to, from) => {
+                console.info(
+                    `Validating lineup. Coming from ${from.fullPath}. Going to ${to.fullPath}.`
+                )
                 const { battingLineup, fieldingLineup } = useLineupsStore()
                 const { players } = usePlayersStore()
                 return (
