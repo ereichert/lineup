@@ -42,36 +42,11 @@ const testIncompleteBattingLineup: Array<Player> = [
 ]
 
 const NUM_INNINGS = 6
-let testCompleteFieldingLineup = new Array<Map<string, string>>(NUM_INNINGS)
+let testCompleteFieldingLineup = new Array<Array<Player>>(NUM_INNINGS)
 
-const testFieldingPositions = [
-  'Catcher',
-  'First',
-  'Second',
-  'Shortstop',
-  'Third',
-  'Left',
-  'Center',
-  'Right',
-  'Bench 1',
-  'Bench 2',
-  'Bench 3'
-]
-
-const initTestFieldingLineup = (
-  fieldingLineup: Array<Map<string, string>>
-): Array<Map<string, string>> => {
+const initTestFieldingLineup = (fieldingLineup: Array<Array<Player>>): Array<Array<Player>> => {
   for (let i = 0; i < fieldingLineup.length; i++) {
-    const inningLineup = new Map<string, string>(
-      testFieldingPositions.map((position) => {
-        return [position.toLowerCase(), position]
-      })
-    )
-    const randomPlayers = testPlayers.sort(() => Math.random() - 0.5)
-    Array.from(inningLineup.keys()).forEach((position, idx) =>
-      inningLineup.set(position, randomPlayers[idx].id)
-    )
-    fieldingLineup[i] = inningLineup
+    fieldingLineup[i] = [...testPlayers]
   }
   return fieldingLineup
 }
@@ -109,9 +84,11 @@ describe('lineup validators', () => {
 
   describe('fielding lineups', () => {
     it('should fail validation if players are missing in the fielding lineup in any inning.', () => {
-      const testIncompleteFieldingLineup = initTestFieldingLineup(new Array<Map<string, string>>(6))
+      const testIncompleteFieldingLineup = initTestFieldingLineup(
+        new Array<Array<Player>>(NUM_INNINGS)
+      )
       // This will pass the length check but will fail the missing player check.
-      testIncompleteFieldingLineup[3].set('bench 1', '')
+      testIncompleteFieldingLineup[3][3] = new Player('', 'Player ID missing')
       expect(
         luValidations.isValidFieldingLineup(testPlayers, testIncompleteFieldingLineup)
       ).toBeFalsy()
@@ -124,8 +101,10 @@ describe('lineup validators', () => {
     })
 
     it('should fail validation if the fielding lineup does not include the exact number of players each inning.', () => {
-      const testIncompleteFieldingLineup = initTestFieldingLineup(new Array<Map<string, string>>(6))
-      testIncompleteFieldingLineup[3].delete('bench 1')
+      const testIncompleteFieldingLineup = initTestFieldingLineup(
+        new Array<Array<Player>>(NUM_INNINGS)
+      )
+      delete testIncompleteFieldingLineup[3][3]
       expect(
         luValidations.isValidFieldingLineup(testPlayers, testIncompleteFieldingLineup)
       ).toBeFalsy()

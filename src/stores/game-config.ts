@@ -6,6 +6,7 @@ export const useGameConfigStore = defineStore('gameConfigStore', {
       // TODO: The number of innings needs to be configurable through an interface.
       numInnings: 6,
       fieldingPositions: [
+        'Pitcher',
         'Catcher',
         'First',
         'Second',
