@@ -54,9 +54,8 @@ const getFieldingLineupPrintView = (): InningFieldingLineupPrintView[] => {
 }
 
 const getBattingLineupPrintView = (): BattingAssignmentPrintView[] => {
-    return Object.entries(battingLineup).map(([battingPosition, playerId]) => {
-        const playerName = lookupPlayer(playerId)?.name ?? 'UNASSIGNED'
-        return new BattingAssignmentPrintView(battingPosition, playerName)
+    return battingLineup.map((player, battingPosition) => {
+        return new BattingAssignmentPrintView(String(battingPosition + 1), player.name)
     })
 }
 </script>

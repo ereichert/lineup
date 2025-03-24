@@ -16,33 +16,30 @@ const testPlayers: Array<Player> = [
   new Player('01951f0d-77fd-7535-90ad-7d33746e3ce0', 'Player K')
 ]
 
-const testCompleteBattingLineup: Record<string, string> = {
-  '1': '01951f0d-77fd-70a7-a372-83ca9ea40b85',
-  '2': '01951f0d-77fd-7550-86d0-2e58561ecefc',
-  '3': '01951f0d-77fd-7a5b-ab23-bb9b3bec5014',
-  '4': '01951f0d-77fd-75e8-a296-493dcbcefd41',
-  '5': '01951f0d-77fd-7baf-9343-307713947988',
-  '6': '01951f0d-77fd-7b35-9d3e-32770c204350',
-  '7': '01951f0d-77fd-7398-aab2-16672864c9bf',
-  '8': '01951f0d-77fd-7359-9ae2-8f2302816a8a',
-  '9': '01951f0d-77fd-7858-a3fc-feed01e94f3d',
-  '10': '01951f0d-77fd-7d61-8407-42b9242413e1',
-  '11': '01951f0d-77fd-7535-90ad-7d33746e3ce0'
-}
+const testCompleteBattingLineup: Array<Player> = [
+  new Player('01951f0d-77fd-70a7-a372-83ca9ea40b85', 'Player A'),
+  new Player('01951f0d-77fd-7550-86d0-2e58561ecefc', 'Player B'),
+  new Player('01951f0d-77fd-7a5b-ab23-bb9b3bec5014', 'Player C'),
+  new Player('01951f0d-77fd-75e8-a296-493dcbcefd41', 'Player D'),
+  new Player('01951f0d-77fd-7baf-9343-307713947988', 'Player E'),
+  new Player('01951f0d-77fd-7b35-9d3e-32770c204350', 'Player F'),
+  new Player('01951f0d-77fd-7398-aab2-16672864c9bf', 'Player G'),
+  new Player('01951f0d-77fd-7359-9ae2-8f2302816a8a', 'Player H'),
+  new Player('01951f0d-77fd-7858-a3fc-feed01e94f3d', 'Player I'),
+  new Player('01951f0d-77fd-7d61-8407-42b9242413e1', 'Player J'),
+  new Player('01951f0d-77fd-7535-90ad-7d33746e3ce0', 'Player K')
+]
 
-const testIncompleteBattingLineup: Record<string, string> = {
-  '1': '01951f0d-77fd-70a7-a372-83ca9ea40b85',
-  '2': '01951f0d-77fd-7550-86d0-2e58561ecefc',
-  '3': '01951f0d-77fd-7a5b-ab23-bb9b3bec5014',
-  '4': '01951f0d-77fd-75e8-a296-493dcbcefd41',
-  '5': '01951f0d-77fd-7baf-9343-307713947988',
-  '6': '01951f0d-77fd-7b35-9d3e-32770c204350',
-  '7': '',
-  '8': '01951f0d-77fd-7359-9ae2-8f2302816a8a',
-  '9': '01951f0d-77fd-7858-a3fc-feed01e94f3d',
-  '10': '',
-  '11': '01951f0d-77fd-7535-90ad-7d33746e3ce0'
-}
+const testIncompleteBattingLineup: Array<Player> = [
+  new Player('01951f0d-77fd-70a7-a372-83ca9ea40b85', 'Player A'),
+  new Player('01951f0d-77fd-7a5b-ab23-bb9b3bec5014', 'Player C'),
+  new Player('01951f0d-77fd-75e8-a296-493dcbcefd41', 'Player D'),
+  new Player('01951f0d-77fd-7b35-9d3e-32770c204350', 'Player F'),
+  new Player('01951f0d-77fd-7398-aab2-16672864c9bf', 'Player G'),
+  new Player('01951f0d-77fd-7359-9ae2-8f2302816a8a', 'Player H'),
+  new Player('01951f0d-77fd-7d61-8407-42b9242413e1', 'Player J'),
+  new Player('01951f0d-77fd-7535-90ad-7d33746e3ce0', 'Player K')
+]
 
 const NUM_INNINGS = 6
 let testCompleteFieldingLineup = new Array<Map<string, string>>(NUM_INNINGS)

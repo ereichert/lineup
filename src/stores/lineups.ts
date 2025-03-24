@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { usePlayersStore } from './players'
 import { useGameConfigStore } from './game-config'
+import type Player from '@/models/Player'
 
 const splitFieldingPositionId = (
   fieldPositionId: string
@@ -34,9 +35,14 @@ const initFieldingPositions = (): Array<string> => {
   return finalPositionsList
 }
 
+const initBattingLineup = (): Array<Player> => {
+  const { players } = usePlayersStore()
+  return [...players]
+}
+
 export const useLineupsStore = defineStore('lineups', {
   state: () => ({
-    battingLineup: {} as Record<string, string>,
+    battingLineup: initBattingLineup(),
     fieldingLineup: initFieldingLineup(),
     fieldingAndBenchPositions: initFieldingPositions()
   }),
@@ -72,9 +78,6 @@ export const useLineupsStore = defineStore('lineups', {
     }
   },
   actions: {
-    updateBattingLineup(battingPosition: string, playerId: string) {
-      this.battingLineup[battingPosition] = playerId
-    },
     // The fieldPositionId is a combination of the position (e.g., catcher, first base, etc.) and the inning number.
     // The position and the inning number are hyphenated.
     updateFieldingLineup(fieldPositionId: string, playerId: string) {

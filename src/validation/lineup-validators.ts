@@ -1,10 +1,7 @@
 import type Player from '@/models/Player'
 
-const isValidBattingLineup = (
-  players: Array<Player>,
-  battingLineup: Record<string, string>
-): boolean => {
-  const battingLineupIds = Object.values(battingLineup)
+const isValidBattingLineup = (players: Array<Player>, battingLineup: Array<Player>): boolean => {
+  const battingLineupIds = battingLineup.map((player) => player.id)
 
   if (battingLineupIds.length !== players.length) {
     return false
