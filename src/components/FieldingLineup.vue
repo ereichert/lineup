@@ -1,61 +1,56 @@
 <template>
-    <div class="grid">
-        <div class="grid-row inning-header">
-            <div class="grid-cell">Position</div>
-            <div v-for="numInning in numInnings" class="grid-cell" :key="`inning-${numInning}`">Inning {{ numInning }}
-            </div>
+    <div class="container">
+        <div class="list">
+            <h3>Position</h3>
+            <ul>
+                <li v-for="position in fieldingAndBenchPositions" :key="position.toLowerCase()">{{ position }}</li>
+            </ul>
         </div>
-        <div v-for="position in fieldingAndBenchPositions" class="grid-row" :key="position.toLowerCase()">
-            <div class="grid-cell position-header">{{ position }}</div>
-            <PlayerDropdown v-for="(_, inning) in numInnings" :key="`${position.toLowerCase()}-${inning}`"
-                :players="players" @player-selected="updateFieldingLineup"
-                :dropdownId="`${position.toLowerCase()}-${inning}`"
-                :selected="fieldingLineup[inning].get(position.toLowerCase())" class="grid-cell"
-                :class="{ conflict: isFielderChosenMultipleTimes(`${position.toLowerCase()}-${inning}`) }">
-            </PlayerDropdown>
+        <div v-for="numInning in numInnings" :key="`inning-${numInning}`" class="list">
+            <h3>Inning {{ numInning }} </h3>
+            <ul>
+                <VueDraggable v-model="fieldingLineup[numInning - 1]">
+                    <li v-for="player in fieldingLineup[numInning - 1]" :key="player.id">{{ player.name }}
+                    </li>
+                </VueDraggable>
+            </ul>
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
-import PlayerDropdown from './PlayerDropdown.vue';
-import { usePlayersStore } from '@/stores/players';
 import { useLineupsStore } from '@/stores/lineups';
+import { VueDraggable } from 'vue-draggable-plus';
 
-const players = usePlayersStore().getPlayers
 defineProps<{
     numInnings: number,
 }>()
-const { fieldingLineup, fieldingAndBenchPositions, updateFieldingLineup, isFielderChosenMultipleTimes } = useLineupsStore();
+const { fieldingLineup, fieldingAndBenchPositions } = useLineupsStore();
 
 </script>
 
 <style scoped>
-.grid {
-    display: grid;
-    grid-template-columns: repeat(v-bind(numInnings + 1), 1fr);
-    gap: 1px;
-    border: 1px solid #ddd;
+.container {
+    display: flex;
 }
 
-.grid-row {
-    display: contents;
+.list {
+    flex: 1;
+    background-color: #f4f4f4;
 }
 
-.grid-cell {
-    background-color: #fff;
-    border: 1px solid #ddd;
-    padding: 8px;
-    text-align: left;
+.list h3 {
+    text-align: center;
 }
 
-.inning-header .grid-cell,
-.print-position-header {
-    background-color: #f2f2f2;
-    font-weight: bold;
+ul {
+    list-style-type: none;
+    padding: 0;
 }
 
-.conflict {
-    background-color: red;
+li {
+    padding: 5px 0;
+    border-bottom: 1px solid #ddd;
+    text-align: center;
 }
 </style>

@@ -22,7 +22,6 @@
                 <div class="print-grid-cell print-position-header">Player</div>
             </div>
             <!-- TODO getBattingLineupPrintView is called every loop we need to find a way to call it once. -->
-            <!-- TODO This should print out all of the batting positions even if there are no assignments. -->
             <div v-for="battingAssignment in getBattingLineupPrintView()" :key="battingAssignment.battingPosition"
                 class="print-grid-row">
                 <div class="print-grid-cell print-position-header">{{ battingAssignment.battingPosition }}</div>
@@ -36,27 +35,24 @@
 
 <script setup lang="ts">
 import { useLineupsStore } from '@/stores/lineups';
-import { usePlayersStore } from '@/stores/players';
 import PositionAssignmentPrintView from '@/models/PositionAssignmentPrintView';
 import InningFieldingLineupPrintView from '@/models/InningFieldingLineupPrintView';
 import BattingAssignmentPrintView from '@/models/BattingAssignmentPrintView';
 
-const { battingLineup, fieldingLineup } = useLineupsStore();
-const { lookupPlayer } = usePlayersStore();
+const { battingLineup, fieldingLineup, fieldingAndBenchPositions } = useLineupsStore();
 
 const getFieldingLineupPrintView = (): InningFieldingLineupPrintView[] => {
     return fieldingLineup.map((fieldingSelections, inning) => {
-        const positionAssignments = Array.from(fieldingSelections).map(([position, playerId]) => {
-            return new PositionAssignmentPrintView(position, lookupPlayer(playerId)?.name ?? 'UNASSIGNED')
+        const positionAssignments = fieldingSelections.map((player, positionIdx) => {
+            return new PositionAssignmentPrintView(fieldingAndBenchPositions[positionIdx], player.name)
         });
         return new InningFieldingLineupPrintView((inning + 1).toString(), positionAssignments)
     })
 }
 
 const getBattingLineupPrintView = (): BattingAssignmentPrintView[] => {
-    return Object.entries(battingLineup).map(([battingPosition, playerId]) => {
-        const playerName = lookupPlayer(playerId)?.name ?? 'UNASSIGNED'
-        return new BattingAssignmentPrintView(battingPosition, playerName)
+    return battingLineup.map((player, battingPosition) => {
+        return new BattingAssignmentPrintView(String(battingPosition + 1), player.name)
     })
 }
 </script>

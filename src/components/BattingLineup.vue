@@ -1,28 +1,35 @@
 <template>
-    <div v-for="battingPosition in batters.length" :key="battingPosition">
-        <PlayerDropdown :players="batters" @player-selected="updateBattingLineup"
-            :dropdownId="battingPosition.toString()" :selected="battingLineup[battingPosition]"
-            :class="{ conflict: isBatterChosenMultipleTimes(battingPosition) }"></PlayerDropdown>
-    </div>
+    <ul class="list">
+        <VueDraggable v-model="battingLineup">
+            <li v-for="batter in battingLineup" :key="batter.id">{{ batter.name }}
+            </li>
+        </VueDraggable>
+    </ul>
 </template>
 
 <script setup lang="ts">
-import { usePlayersStore } from '@/stores/players';
-import PlayerDropdown from './PlayerDropdown.vue';
+import { VueDraggable } from 'vue-draggable-plus';
 import { useLineupsStore } from '@/stores/lineups';
+import { storeToRefs } from 'pinia';
 
-const batters = usePlayersStore().getPlayers;
-const { battingLineup, isBatterChosenMultipleTimes, updateBattingLineup } = useLineupsStore();
+const { battingLineup } = storeToRefs(useLineupsStore());
+
 </script>
 
 <style scoped>
-.conflict {
-    background-color: red;
+.list {
+    flex: 1;
+    background-color: #f4f4f4;
 }
 
-select {
-    width: 100%;
-    margin-bottom: 10px;
-    padding: 5px;
+ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+li {
+    padding: 5px 0;
+    border-bottom: 1px solid #ddd;
+    text-align: center;
 }
 </style>

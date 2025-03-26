@@ -18,8 +18,6 @@ const { numInnings } = useGameConfigStore()
             </FieldingLineup>
         </div>
     </div>
-    <!-- TODO Before going to the print view the lineups need to be validated for completeness.
-     Are all positions filled. Are all players assigned.  -->
     <RouterLink to="/print">Print View</RouterLink>
 </template>
 

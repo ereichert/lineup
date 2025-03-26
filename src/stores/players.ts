@@ -6,7 +6,6 @@ export const usePlayersStore = defineStore('playersStore', {
     // TODO: Does this get called multiple times or is it a one time build on init?
     return {
       //TODO: Get the players from a textarea or upload
-      // TODO: This probably needs to be a map from ID to player for easy lookups.
       players: [
         new Player('01951f0d-77fd-70a7-a372-83ca9ea40b85', 'Player A'),
         new Player('01951f0d-77fd-7550-86d0-2e58561ecefc', 'Player B'),
@@ -20,14 +19,6 @@ export const usePlayersStore = defineStore('playersStore', {
         new Player('01951f0d-77fd-7d61-8407-42b9242413e1', 'Player J'),
         new Player('01951f0d-77fd-7535-90ad-7d33746e3ce0', 'Player K')
       ]
-    }
-  },
-  getters: {
-    getPlayers: (state) => state.players,
-    lookupPlayer: (state) => {
-      return (playerId: string): Player | undefined => {
-        return state.players.find((player) => player.id === playerId)
-      }
     }
   }
 })
