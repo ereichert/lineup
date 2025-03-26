@@ -1,7 +1,6 @@
 <template>
     <RouterLink to="/" class="hidden-print">Go to edit view.</RouterLink>
-    <!-- TODO getFieldingLineupPrintView is probably called every loop we need to find a way to call it once. -->
-    <div v-for="inningLineup in getFieldingLineupPrintView()" :key="inningLineup.inning">
+    <div v-for="inningLineup in fieldingLineupPrintView" :key="inningLineup.inning">
         <h1>Inning {{ inningLineup.inning }}</h1>
         <h2>Fielding Lineup</h2>
         <div class="print-grid">
@@ -21,8 +20,7 @@
                 <div class="print-grid-cell print-position-header">Batting Position</div>
                 <div class="print-grid-cell print-position-header">Player</div>
             </div>
-            <!-- TODO getBattingLineupPrintView is called every loop we need to find a way to call it once. -->
-            <div v-for="battingAssignment in getBattingLineupPrintView()" :key="battingAssignment.battingPosition"
+            <div v-for="battingAssignment in battingLineupPrintView" :key="battingAssignment.battingPosition"
                 class="print-grid-row">
                 <div class="print-grid-cell print-position-header">{{ battingAssignment.battingPosition }}</div>
                 <div class="print-grid-cell">{{ battingAssignment.playerName }}</div>
@@ -55,6 +53,9 @@ const getBattingLineupPrintView = (): BattingAssignmentPrintView[] => {
         return new BattingAssignmentPrintView(String(battingPosition + 1), player.name)
     })
 }
+
+const fieldingLineupPrintView = getFieldingLineupPrintView();
+const battingLineupPrintView = getBattingLineupPrintView();
 </script>
 
 <style scoped>
