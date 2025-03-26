@@ -24,7 +24,8 @@ const router = createRouter({
         const { players } = usePlayersStore()
         return (
           luValidations.isValidBattingLineup(players, battingLineup) &&
-          luValidations.isValidFieldingLineup(players, fieldingLineup)
+          luValidations.isValidFieldingLineup(players, fieldingLineup) &&
+          luValidations.hasAllPlayersAssignedToAnOutfieldPosition(fieldingLineup)
         )
       }
     }

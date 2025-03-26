@@ -1,5 +1,6 @@
 import Player from '@/models/Player'
 import luValidations from '@/validation/lineup-validators'
+import { createPinia, setActivePinia } from 'pinia'
 import { describe, it, expect, beforeAll } from 'vitest'
 
 const testPlayers: Array<Player> = [
@@ -53,6 +54,91 @@ const initTestFieldingLineup = (fieldingLineup: Array<Array<Player>>): Array<Arr
 
 beforeAll(() => {
   testCompleteFieldingLineup = initTestFieldingLineup(testCompleteFieldingLineup)
+  setActivePinia(createPinia())
+})
+
+describe('outfield position assignments', () => {
+  it('should pass when all players have at least one outfield position', () => {
+    const testFieldingLineupWithRotatedOutfielders = initTestFieldingLineup(
+      new Array<Array<Player>>(NUM_INNINGS)
+    )
+
+    // Rotate the lineup by 3 positions each inning after the first inning.
+    // Make sure all players have at least one outfield position.
+    for (let i = 1; i < NUM_INNINGS; i++) {
+      const inningFieldingLineup = testFieldingLineupWithRotatedOutfielders[i - 1]
+      const shiftAmount = 3
+      const newHead = inningFieldingLineup.slice(-shiftAmount)
+      testFieldingLineupWithRotatedOutfielders[i] = [
+        ...newHead,
+        ...inningFieldingLineup.slice(0, -shiftAmount)
+      ]
+    }
+
+    expect(
+      luValidations.hasAllPlayersAssignedToAnOutfieldPosition(
+        testFieldingLineupWithRotatedOutfielders
+      )
+    ).toBeTruthy()
+  })
+
+  it('should fail when at least one player is not assigned to an outfield position', () => {
+    const testFieldingLineupWithRotatedOutfielders = initTestFieldingLineup(
+      new Array<Array<Player>>(NUM_INNINGS)
+    )
+
+    // Rotate the lineup by 3 positions each inning after the first inning.
+    // Make sure Player A is only assigned as a pitcher.
+    for (let i = 1; i < NUM_INNINGS; i++) {
+      const inningFieldingLineup = testFieldingLineupWithRotatedOutfielders[i - 1]
+      const shiftAmount = 3
+      const newHead = inningFieldingLineup.slice(-shiftAmount)
+      testFieldingLineupWithRotatedOutfielders[i] = [
+        inningFieldingLineup[0],
+        ...newHead,
+        ...inningFieldingLineup.slice(1, -shiftAmount)
+      ]
+    }
+
+    expect(
+      luValidations.hasAllPlayersAssignedToAnOutfieldPosition(
+        testFieldingLineupWithRotatedOutfielders
+      )
+    ).toBeFalsy()
+  })
+
+  it('should fail when player only has infield and bench positions', () => {
+    const testFieldingLineupWithRotatedOutfielders = initTestFieldingLineup(
+      new Array<Array<Player>>(NUM_INNINGS)
+    )
+
+    // Make sure Player A is only assigned to infield and bench positions.
+    for (let i = 1; i < NUM_INNINGS; i++) {
+      const inningFieldingLineup = testFieldingLineupWithRotatedOutfielders[i - 1]
+      const shiftAmount = 3
+      if (i % 2 === 0) {
+        // assign player A as the pitcher
+        testFieldingLineupWithRotatedOutfielders[i] = [
+          ...inningFieldingLineup.slice(-1),
+          ...inningFieldingLineup.slice(7, 10),
+          ...inningFieldingLineup.slice(0, 7)
+        ]
+      } else {
+        // assign Player A to a bench position
+        testFieldingLineupWithRotatedOutfielders[i] = [
+          ...inningFieldingLineup.slice(-shiftAmount),
+          ...inningFieldingLineup.slice(1, 8),
+          inningFieldingLineup[0]
+        ]
+      }
+    }
+
+    expect(
+      luValidations.hasAllPlayersAssignedToAnOutfieldPosition(
+        testFieldingLineupWithRotatedOutfielders
+      )
+    ).toBeFalsy()
+  })
 })
 
 describe('lineup validators', () => {

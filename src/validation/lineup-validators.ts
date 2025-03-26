@@ -1,4 +1,6 @@
 import type Player from '@/models/Player'
+import { FieldingPositions } from '@/stores/game-config'
+import { useLineupsStore } from '@/stores/lineups'
 
 const isValidBattingLineup = (players: Array<Player>, battingLineup: Array<Player>): boolean => {
   const battingLineupIds = battingLineup.map((player) => player.id)
@@ -51,4 +53,43 @@ const isValidFieldingLineup = (
   return isValid
 }
 
-export default { isValidBattingLineup, isValidFieldingLineup }
+const hasAllPlayersAssignedToAnOutfieldPosition = (
+  fieldingLineup: Array<Array<Player>>
+): boolean => {
+  const { fieldingAndBenchPositions } = useLineupsStore()
+  const positionTracker: Record<string, Set<string>> = {}
+
+  fieldingLineup.forEach((inning) => {
+    inning.forEach((player, idx) => {
+      if (!positionTracker[player.name]) {
+        positionTracker[player.name] = new Set()
+      }
+      positionTracker[player.name].add(fieldingAndBenchPositions[idx])
+    })
+  })
+
+  const playersMissingOutfieldAssignments = Object.keys(positionTracker).filter((playerName) => {
+    const positions = positionTracker[playerName]
+    if (
+      !positions.has(FieldingPositions.RIGHT) &&
+      !positions.has(FieldingPositions.CENTER) &&
+      !positions.has(FieldingPositions.LEFT)
+    ) {
+      return playerName
+    }
+  })
+
+  if (playersMissingOutfieldAssignments.length > 0) {
+    console.info(`Players missing an outfield assignment: ${playersMissingOutfieldAssignments}`)
+    return false
+  } else {
+    console.info('All players are assigned to right, center, and left at least once.')
+    return true
+  }
+}
+
+export default {
+  hasAllPlayersAssignedToAnOutfieldPosition,
+  isValidBattingLineup,
+  isValidFieldingLineup
+}
