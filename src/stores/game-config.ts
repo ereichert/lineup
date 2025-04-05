@@ -12,6 +12,8 @@ export const FieldingPositions = Object.freeze({
   RIGHT: 'Right'
 })
 
+export const BENCH_PREFIX = 'Bench'
+
 export const useGameConfigStore = defineStore('gameConfigStore', {
   state: () => {
     return {

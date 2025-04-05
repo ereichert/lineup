@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { usePlayersStore } from './players'
-import { useGameConfigStore } from './game-config'
+import { BENCH_PREFIX, useGameConfigStore } from './game-config'
 import type Player from '@/models/Player'
 
 const initFieldingLineup = (): Array<Array<Player>> => {
@@ -18,7 +18,7 @@ const initFieldingPositions = (): Array<string> => {
   const { fieldingPositions } = useGameConfigStore()
   const finalPositionsList: Array<string> = [...fieldingPositions]
   for (let i = 0; i < players.length - fieldingPositions.length; i++) {
-    finalPositionsList.push(`Bench ${i + 1}`)
+    finalPositionsList.push(`${BENCH_PREFIX} ${i + 1}`)
   }
   return finalPositionsList
 }
