@@ -31,3 +31,7 @@ coverage
 
 test-results/
 playwright-report/
+
+.venv
+.mypy_cache
+.ruff_cache
