@@ -88,8 +88,41 @@ const hasAllPlayersAssignedToAnOutfieldPosition = (
   }
 }
 
+export interface ParticipationRule {
+  id: string
+  label: string
+  validate: (fieldingLineup: Array<Array<Player>>) => boolean
+}
+
+const participationRules: Array<ParticipationRule> = [
+  {
+    id: 'outfieldAssignment',
+    label: 'Every player must play at least one outfield inning (Left, Center, or Right)',
+    validate: hasAllPlayersAssignedToAnOutfieldPosition
+  }
+]
+
+const isPrintViewAllowed = (
+  players: Array<Player>,
+  battingLineup: Array<Player>,
+  fieldingLineup: Array<Array<Player>>,
+  enabledRules: Record<string, boolean>
+): boolean => {
+  const structuralChecksPass =
+    isValidBattingLineup(players, battingLineup) && isValidFieldingLineup(players, fieldingLineup)
+
+  return (
+    structuralChecksPass &&
+    participationRules
+      .filter((rule) => enabledRules[rule.id])
+      .every((rule) => rule.validate(fieldingLineup))
+  )
+}
+
 export default {
   hasAllPlayersAssignedToAnOutfieldPosition,
   isValidBattingLineup,
-  isValidFieldingLineup
+  isValidFieldingLineup,
+  isPrintViewAllowed,
+  participationRules
 }

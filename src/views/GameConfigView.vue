@@ -18,6 +18,15 @@
                 </li>
             </ol>
         </div>
+        <div class="validation-rules">
+            <h3>Validation Rules (Print View)</h3>
+            <div class="rule-item" v-for="rule in participationRules" :key="rule.id">
+                <label>
+                    <input type="checkbox" v-model="enabledRules[rule.id]" />
+                    {{ rule.label }}
+                </label>
+            </div>
+        </div>
     </div>
     <RouterLink to="/editlineups">Edit Lineups</RouterLink>
 </template>
@@ -28,9 +37,13 @@ import { uuidv7 } from 'uuidv7'
 import { ref } from 'vue'
 import { usePlayersStore } from '@/stores/players';
 import { storeToRefs } from 'pinia';
+import luValidations from '@/validation/lineup-validators'
+import { useValidationSettingsStore } from '@/stores/validation-settings'
 
 const playerInput = ref<string>('')
 const { players } = storeToRefs(usePlayersStore());
+const participationRules = luValidations.participationRules
+const { enabledRules } = storeToRefs(useValidationSettingsStore())
 
 const updatePlayerList = (): void => {
     players.value = playerInput.value
@@ -69,6 +82,14 @@ textarea {
 }
 
 .player-list li {
+    padding: 5px 0;
+}
+
+.validation-rules {
+    margin-top: 20px;
+}
+
+.rule-item {
     padding: 5px 0;
 }
 </style>

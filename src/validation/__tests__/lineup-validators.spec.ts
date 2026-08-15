@@ -203,3 +203,60 @@ describe('lineup validators', () => {
     })
   })
 })
+
+describe('isPrintViewAllowed', () => {
+  const rotatedFieldingLineupWithAllPlayersInOutfield = (): Array<Array<Player>> => {
+    const fieldingLineup = initTestFieldingLineup(new Array<Array<Player>>(NUM_INNINGS))
+    for (let i = 1; i < NUM_INNINGS; i++) {
+      const inningFieldingLineup = fieldingLineup[i - 1]
+      const shiftAmount = 3
+      const newHead = inningFieldingLineup.slice(-shiftAmount)
+      fieldingLineup[i] = [...newHead, ...inningFieldingLineup.slice(0, -shiftAmount)]
+    }
+    return fieldingLineup
+  }
+
+  it('fails when a structural check fails, regardless of which rules are enabled', () => {
+    expect(
+      luValidations.isPrintViewAllowed(
+        testPlayers,
+        testIncompleteBattingLineup,
+        testCompleteFieldingLineup,
+        { outfieldAssignment: false }
+      )
+    ).toBeFalsy()
+  })
+
+  it('passes when structural checks pass and a disabled participation rule is unmet', () => {
+    expect(
+      luValidations.isPrintViewAllowed(
+        testPlayers,
+        testCompleteBattingLineup,
+        testCompleteFieldingLineup,
+        { outfieldAssignment: false }
+      )
+    ).toBeTruthy()
+  })
+
+  it('fails when structural checks pass but an enabled participation rule is unmet', () => {
+    expect(
+      luValidations.isPrintViewAllowed(
+        testPlayers,
+        testCompleteBattingLineup,
+        testCompleteFieldingLineup,
+        { outfieldAssignment: true }
+      )
+    ).toBeFalsy()
+  })
+
+  it('passes when structural checks pass and an enabled participation rule is met', () => {
+    expect(
+      luValidations.isPrintViewAllowed(
+        testPlayers,
+        testCompleteBattingLineup,
+        rotatedFieldingLineupWithAllPlayersInOutfield(),
+        { outfieldAssignment: true }
+      )
+    ).toBeTruthy()
+  })
+})
