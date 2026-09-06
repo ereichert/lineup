@@ -173,5 +173,13 @@ const fieldingGridStyle: Record<string, string> = {
     .print-grid-cell {
         padding: 3pt 4pt;
     }
+
+    /* The shading is what separates the labels from the names, so it is content rather than
+       decoration. Without this the print dialog drops it, and its "Background graphics" box is
+       unchecked by default, so that is what most people would get. */
+    .print-position-header {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
 }
 </style>
