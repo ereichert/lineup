@@ -1,7 +1,9 @@
 import { defineStore } from 'pinia'
+import { uuidv7 } from 'uuidv7'
 import { usePlayersStore } from './players'
 import { useGameConfigStore } from './game-config'
-import type Player from '@/models/Player'
+import Player from '@/models/Player'
+import type { ImportedLineup } from '@/persistence/lineup-file'
 
 export interface FieldingSlotRef {
   inning: number
@@ -12,9 +14,8 @@ export interface FieldingSlotRef {
 // roster pool, so unlike the old model the lineup does not snapshot the roster up front.
 const initFieldingLineup = (): Array<Array<Player | null>> => {
   const { numInnings, fieldingPositions } = useGameConfigStore()
-  return Array.from(
-    { length: numInnings },
-    () => new Array<Player | null>(fieldingPositions.length).fill(null)
+  return Array.from({ length: numInnings }, () =>
+    new Array<Player | null>(fieldingPositions.length).fill(null)
   )
 }
 
@@ -96,6 +97,46 @@ export const useLineupsStore = defineStore('lineups', {
 
     resetFieldingLineup() {
       this.fieldingLineup = initFieldingLineup()
+    },
+
+    // Re-parsing the roster reuses the players already on it, so re-entering the same names does
+    // not orphan the lineups by handing everyone a fresh id.
+    applyRoster(names: Array<string>) {
+      const playersStore = usePlayersStore()
+      const existingByName = new Map(playersStore.players.map((player) => [player.name, player]))
+
+      const roster: Array<Player> = []
+      const seenNames = new Set<string>()
+      names.forEach((name) => {
+        if (seenNames.has(name)) {
+          return
+        }
+        seenNames.add(name)
+        roster.push(existingByName.get(name) ?? new Player(uuidv7(), name))
+      })
+
+      const sortedRoster = [...roster].sort((a, b) => a.name.localeCompare(b.name))
+      const rosterIds = new Set(roster.map((player) => player.id))
+      playersStore.players = sortedRoster
+
+      // Batting order is independent of the alphabetical roster list: keep the order already set,
+      // drop anyone taken off the roster, and append newcomers at the bottom.
+      const keptBatting = this.battingLineup.filter((player) => rosterIds.has(player.id))
+      const battingIds = new Set(keptBatting.map((player) => player.id))
+      this.battingLineup = [
+        ...keptBatting,
+        ...sortedRoster.filter((player) => !battingIds.has(player.id))
+      ]
+
+      // Newcomers hold no position, so they are already on every inning's bench.
+      this.sanitizeFieldingLineup()
+    },
+
+    importLineup(imported: ImportedLineup) {
+      const playersStore = usePlayersStore()
+      playersStore.players = imported.players
+      this.battingLineup = imported.battingLineup
+      this.fieldingLineup = imported.fieldingLineup
     },
 
     // The roster can be re-entered after slots are filled, which would otherwise strand players

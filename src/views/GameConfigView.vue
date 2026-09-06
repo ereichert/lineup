@@ -10,6 +10,12 @@
         <div class="button-container">
             <button @click="updatePlayerList" :disabled="!playerInput">Parse Players</button>
         </div>
+        <div class="import-lineup">
+            <button type="button" class="link-button" @click="openFilePicker">Import Saved Lineup</button>
+            <input ref="fileInput" type="file" accept="application/json,.json" class="file-input"
+                @change="importLineupFile" />
+            <p v-if="importError" class="import-error">{{ importError }}</p>
+        </div>
         <div class="player-list" v-if="players.length > 0">
             <h3>Players:</h3>
             <ol>
@@ -32,25 +38,60 @@
 </template>
 
 <script setup lang="ts">
-import Player from '@/models/Player'
-import { uuidv7 } from 'uuidv7'
 import { ref } from 'vue'
 import { usePlayersStore } from '@/stores/players';
+import { useLineupsStore } from '@/stores/lineups';
+import { useGameConfigStore } from '@/stores/game-config';
 import { storeToRefs } from 'pinia';
 import luValidations from '@/validation/lineup-validators'
 import { useValidationSettingsStore } from '@/stores/validation-settings'
+import { parseLineupExport, toLineupState } from '@/persistence/lineup-file'
 
 const playerInput = ref<string>('')
+const importError = ref<string>('')
+const fileInput = ref<HTMLInputElement | null>(null)
 const { players } = storeToRefs(usePlayersStore());
+const lineupsStore = useLineupsStore()
+const gameConfigStore = useGameConfigStore()
 const participationRules = luValidations.participationRules
 const { enabledRules } = storeToRefs(useValidationSettingsStore())
 
-const updatePlayerList = (): void => {
-    players.value = playerInput.value
+const parseNames = (input: string): Array<string> =>
+    input
         .split(',')
-        .map((name: string): Player => new Player(uuidv7(), name.trim()))
-        .filter((player: Player): boolean => player.name.length > 0)
-        .sort((a: Player, b: Player): number => a.name.localeCompare(b.name))
+        .map((name: string): string => name.trim())
+        .filter((name: string): boolean => name.length > 0)
+
+// Reconciles rather than replaces, so an imported lineup survives adding or dropping a name.
+const updatePlayerList = (): void => {
+    importError.value = ''
+    lineupsStore.applyRoster(parseNames(playerInput.value))
+}
+
+const openFilePicker = (): void => {
+    fileInput.value?.click()
+}
+
+const importLineupFile = async (event: Event): Promise<void> => {
+    const input = event.target as HTMLInputElement
+    const file = input.files?.[0]
+    if (!file) {
+        return
+    }
+
+    importError.value = ''
+    try {
+        const lineupExport = parseLineupExport(await file.text())
+        lineupsStore.importLineup(
+            toLineupState(lineupExport, gameConfigStore.fieldingPositions, gameConfigStore.numInnings)
+        )
+        playerInput.value = players.value.map((player) => player.name).join(', ')
+    } catch (error) {
+        importError.value = error instanceof Error ? error.message : 'Could not import that file.'
+    } finally {
+        // Clearing the input allows the same file to be picked again after a failed import.
+        input.value = ''
+    }
 }
 </script>
 
@@ -74,6 +115,30 @@ textarea {
     width: 100%;
     padding: 8px;
     margin-bottom: 10px;
+}
+
+.import-lineup {
+    margin-top: 12px;
+}
+
+.file-input {
+    display: none;
+}
+
+.link-button {
+    padding: 0;
+    border: none;
+    background: none;
+    color: #0000ee;
+    font-size: inherit;
+    font-family: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.import-error {
+    margin: 8px 0 0;
+    color: #b00020;
 }
 
 .player-list ul {

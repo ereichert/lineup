@@ -195,3 +195,111 @@ describe('lineups store fielding slots', () => {
     expect(store.fieldingLineup.flat().every((slot) => slot === null)).toBe(true)
   })
 })
+
+describe('applying a parsed roster', () => {
+  const PITCHER_IDX = PITCHER
+  const namesOf = (roster: Array<{ name: string }>) => roster.map((player) => player.name)
+
+  beforeEach(() => {
+    usePlayersStore().players = []
+  })
+
+  it('lists the roster alphabetically whatever order it was typed in', () => {
+    const store = useLineupsStore()
+
+    store.applyRoster(['Cal', 'Ava', 'Ben'])
+
+    expect(namesOf(usePlayersStore().players)).toEqual(['Ava', 'Ben', 'Cal'])
+  })
+
+  it('ignores a name typed twice', () => {
+    const store = useLineupsStore()
+
+    store.applyRoster(['Ava', 'Ben', 'Ava'])
+
+    expect(namesOf(usePlayersStore().players)).toEqual(['Ava', 'Ben'])
+    expect(store.battingLineup).toHaveLength(2)
+  })
+
+  it('keeps a players id when the roster is parsed again', () => {
+    const store = useLineupsStore()
+    store.applyRoster(['Ava', 'Ben'])
+    const avaId = usePlayersStore().players[0].id
+
+    store.applyRoster(['Ava', 'Ben'])
+
+    expect(usePlayersStore().players[0].id).toBe(avaId)
+  })
+
+  it('leaves an existing lineup untouched when the roster is parsed again', () => {
+    const store = useLineupsStore()
+    store.applyRoster(['Ava', 'Ben'])
+    const ava = usePlayersStore().players[0]
+    store.assignPlayerToSlot(0, PITCHER_IDX, ava)
+
+    store.applyRoster(['Ava', 'Ben'])
+
+    expect(store.fieldingLineup[0][PITCHER_IDX]?.id).toBe(ava.id)
+  })
+
+  it('appends a newly added player to the bottom of the batting lineup', () => {
+    const store = useLineupsStore()
+    store.applyRoster(['Cal', 'Ava'])
+    store.battingLineup = [...store.battingLineup].reverse()
+    const battingBefore = namesOf(store.battingLineup)
+
+    store.applyRoster(['Cal', 'Ava', 'Zoe'])
+
+    expect(namesOf(store.battingLineup)).toEqual([...battingBefore, 'Zoe'])
+  })
+
+  it('puts a newly added player on the bench for every inning', () => {
+    const { numInnings } = useGameConfigStore()
+    const store = useLineupsStore()
+    store.applyRoster(['Ava', 'Ben'])
+
+    store.applyRoster(['Ava', 'Ben', 'Zoe'])
+
+    for (let inning = 0; inning < numInnings; inning++) {
+      expect(namesOf(store.benchedPlayersByInning[inning])).toContain('Zoe')
+    }
+  })
+
+  it('drops a removed player from the batting lineup and frees their position', () => {
+    const store = useLineupsStore()
+    store.applyRoster(['Ava', 'Ben'])
+    const [ava, ben] = usePlayersStore().players
+    store.assignPlayerToSlot(0, PITCHER_IDX, ava)
+    store.assignPlayerToSlot(0, CATCHER, ben)
+
+    store.applyRoster(['Ben'])
+
+    expect(namesOf(store.battingLineup)).toEqual(['Ben'])
+    expect(store.fieldingLineup[0][PITCHER_IDX]).toBeNull()
+    expect(store.fieldingLineup[0][CATCHER]?.id).toBe(ben.id)
+  })
+})
+
+describe('importing a saved lineup', () => {
+  it('replaces the roster, the batting lineup and the fielding lineup', () => {
+    const { numInnings, fieldingPositions } = useGameConfigStore()
+    const store = useLineupsStore()
+    const cal = new Player('id-cal', 'Cal')
+    const ava = new Player('id-ava', 'Ava')
+    const imported = {
+      players: [ava, cal],
+      battingLineup: [cal, ava],
+      fieldingLineup: Array.from({ length: numInnings }, () =>
+        new Array<Player | null>(fieldingPositions.length).fill(null)
+      )
+    }
+    imported.fieldingLineup[0][PITCHER] = ava
+
+    store.importLineup(imported)
+
+    expect(usePlayersStore().players.map((player) => player.name)).toEqual(['Ava', 'Cal'])
+    expect(store.battingLineup.map((player) => player.name)).toEqual(['Cal', 'Ava'])
+    expect(store.fieldingLineup[0][PITCHER]?.id).toBe('id-ava')
+    expect(store.benchedPlayersByInning[0].map((player) => player.name)).toEqual(['Cal'])
+  })
+})
