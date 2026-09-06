@@ -49,11 +49,12 @@ const getFieldingLineupPrintView = (): InningFieldingLineupPrintView[] => {
         });
 
         // The bench is derived from whoever holds no position, so it is appended rather than stored.
-        const benchedPlayers = lineupsStore.benchedPlayersByInning[inning];
-        if (benchedPlayers.length > 0) {
-            const benchedNames = benchedPlayers.map((player) => player.name).join(', ');
-            positionAssignments.push(new PositionAssignmentPrintView('Bench', benchedNames));
-        }
+        // Each bench spot gets its own row so it reads like every other position on the sheet.
+        lineupsStore.benchedPlayersByInning[inning].forEach((player, benchIdx) => {
+            positionAssignments.push(
+                new PositionAssignmentPrintView(`Bench ${benchIdx + 1}`, player.name)
+            );
+        });
 
         return new InningFieldingLineupPrintView((inning + 1).toString(), positionAssignments)
     })
