@@ -1,34 +1,41 @@
 <template>
     <RouterLink to="/editlineups" class="hidden-print">Go to edit view.</RouterLink>
     <h1>Lineup</h1>
-    <h2>Fielding Lineup</h2>
-    <div class="print-grid fielding-grid" :style="fieldingGridStyle">
-        <div class="print-grid-row">
-            <div class="print-grid-cell print-position-header">Position</div>
-            <div v-for="inning in inningNumbers" :key="`header-${inning}`"
-                class="print-grid-cell print-position-header print-inning-header">
-                {{ inning }}
+    <div class="lineup-sheet">
+        <section class="fielding-section">
+            <h2>Fielding Lineup</h2>
+            <div class="print-grid fielding-grid" :style="fieldingGridStyle">
+                <div class="print-grid-row">
+                    <div class="print-grid-cell print-position-header">Position</div>
+                    <div v-for="inning in inningNumbers" :key="`header-${inning}`"
+                        class="print-grid-cell print-position-header print-inning-header">
+                        {{ inning }}
+                    </div>
+                </div>
+                <div v-for="row in fieldingRows" :key="row.position" class="print-grid-row"
+                    :data-position="row.position">
+                    <div class="print-grid-cell print-position-header">{{ row.label }}</div>
+                    <div v-for="(player, inningIdx) in row.playersByInning" :key="`${row.position}-${inningIdx}`"
+                        class="print-grid-cell">
+                        {{ player }}
+                    </div>
+                </div>
             </div>
-        </div>
-        <div v-for="row in fieldingRows" :key="row.position" class="print-grid-row" :data-position="row.position">
-            <div class="print-grid-cell print-position-header">{{ row.label }}</div>
-            <div v-for="(player, inningIdx) in row.playersByInning" :key="`${row.position}-${inningIdx}`"
-                class="print-grid-cell">
-                {{ player }}
+        </section>
+        <section class="batting-section">
+            <h2>Batting Lineup</h2>
+            <div class="print-grid batting-grid">
+                <div class="print-grid-row">
+                    <div class="print-grid-cell print-position-header">Batting Position</div>
+                    <div class="print-grid-cell print-position-header">Player</div>
+                </div>
+                <div v-for="battingAssignment in battingLineupPrintView" :key="battingAssignment.battingPosition"
+                    class="print-grid-row">
+                    <div class="print-grid-cell print-position-header">{{ battingAssignment.battingPosition }}</div>
+                    <div class="print-grid-cell">{{ battingAssignment.playerName }}</div>
+                </div>
             </div>
-        </div>
-    </div>
-    <h2>Batting Lineup</h2>
-    <div class="print-grid batting-grid">
-        <div class="print-grid-row">
-            <div class="print-grid-cell print-position-header">Batting Position</div>
-            <div class="print-grid-cell print-position-header">Player</div>
-        </div>
-        <div v-for="battingAssignment in battingLineupPrintView" :key="battingAssignment.battingPosition"
-            class="print-grid-row">
-            <div class="print-grid-cell print-position-header">{{ battingAssignment.battingPosition }}</div>
-            <div class="print-grid-cell">{{ battingAssignment.playerName }}</div>
-        </div>
+        </section>
     </div>
     <RouterLink to="/editlineups" class="hidden-print">Go to edit view.</RouterLink>
 </template>
@@ -75,8 +82,10 @@ const getBattingLineupPrintView = (): BattingAssignmentPrintView[] => {
 
 const fieldingRows = getFieldingRows();
 const battingLineupPrintView = getBattingLineupPrintView();
-const fieldingGridStyle = {
-    gridTemplateColumns: `minmax(90px, 0.8fr) repeat(${inningNumbers.length}, minmax(80px, 1fr))`
+// The column count drives the grid template from CSS, so the print rules can retune the widths
+// without rebuilding the template string here.
+const fieldingGridStyle: Record<string, string> = {
+    '--inning-count': String(inningNumbers.length)
 };
 </script>
 
@@ -89,6 +98,7 @@ const fieldingGridStyle = {
 
 .fielding-grid {
     width: 100%;
+    grid-template-columns: minmax(90px, 0.8fr) repeat(var(--inning-count), minmax(80px, 1fr));
 }
 
 .batting-grid {
@@ -118,13 +128,50 @@ const fieldingGridStyle = {
 }
 
 @media print {
+    /* Seven inning columns beside a batting order only fit across the long edge. The dialog can
+       still be switched back to portrait; this only decides what it opens on. */
+    @page {
+        size: letter landscape;
+        margin: 0.4in;
+    }
+
     .hidden-print {
         display: none !important;
     }
 
-    /* One sheet is the point of this layout, so keep a table from splitting across a break. */
+    /* Landscape leaves room to set the batting order beside the grid rather than on a second
+       sheet. Nothing can shrink to fit in a print dialog, so the sheet has to fit at full size. */
+    .lineup-sheet {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.3in;
+    }
+
+    .fielding-section {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .batting-section {
+        flex: 0 0 auto;
+    }
+
+    .lineup-sheet h2 {
+        margin: 0 0 4pt;
+        font-size: 11pt;
+    }
+
+    .fielding-grid {
+        grid-template-columns: auto repeat(var(--inning-count), minmax(0, 1fr));
+    }
+
     .print-grid {
         break-inside: avoid;
+        font-size: 9pt;
+    }
+
+    .print-grid-cell {
+        padding: 3pt 4pt;
     }
 }
 </style>
