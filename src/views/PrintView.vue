@@ -9,8 +9,9 @@
                 <div class="print-grid-cell print-position-header">Player</div>
             </div>
             <div v-for="nextPosition in inningLineup.positionAssignments"
-                :key="`${nextPosition.position}-${inningLineup.inning}`" class="print-grid-row">
-                <div class="print-grid-cell print-position-header">{{ nextPosition.position }}</div>
+                :key="`${nextPosition.position}-${inningLineup.inning}`" class="print-grid-row"
+                :data-position="nextPosition.position">
+                <div class="print-grid-cell print-position-header">{{ nextPosition.label }}</div>
                 <div class="print-grid-cell">{{ nextPosition.player }}</div>
             </div>
         </div>
@@ -49,10 +50,11 @@ const getFieldingLineupPrintView = (): InningFieldingLineupPrintView[] => {
         });
 
         // The bench is derived from whoever holds no position, so it is appended rather than stored.
-        // Each bench spot gets its own row so it reads like every other position on the sheet.
+        // Each bench spot gets its own row, numbered to keep the rows distinct but printed as a
+        // plain "Bench" since the number means nothing to whoever reads the sheet.
         lineupsStore.benchedPlayersByInning[inning].forEach((player, benchIdx) => {
             positionAssignments.push(
-                new PositionAssignmentPrintView(`Bench ${benchIdx + 1}`, player.name)
+                new PositionAssignmentPrintView(`Bench ${benchIdx + 1}`, player.name, 'Bench')
             );
         });
 

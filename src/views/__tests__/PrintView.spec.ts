@@ -37,16 +37,28 @@ const fieldingRows = (wrapper: ReturnType<typeof mountWithFirstInningFilled>) =>
     .map((row) => row.findAll('.print-grid-cell').map((cell) => cell.text()))
 
 describe('PrintView fielding sheet', () => {
-  it('gives every benched player their own row', () => {
+  it('gives every benched player their own row, without a bench number', () => {
     const { fieldingPositions } = useGameConfigStore()
     const rows = fieldingRows(mountWithFirstInningFilled())
-    const benchRows = rows.filter(([position]) => position.startsWith('Bench'))
+    const benchRows = rows.filter(([position]) => position === 'Bench')
 
     expect(benchRows).toEqual([
-      ['Bench 1', 'Player J'],
-      ['Bench 2', 'Player K']
+      ['Bench', 'Player J'],
+      ['Bench', 'Player K']
     ])
     expect(rows).toHaveLength(fieldingPositions.length + benchRows.length)
+  })
+
+  it('still numbers the bench rows underneath the label it prints', () => {
+    const benchRows = mountWithFirstInningFilled()
+      .findAll('.print-grid')[0]
+      .findAll('[data-position^="Bench"]')
+
+    expect(benchRows.map((row) => row.attributes('data-position'))).toEqual(['Bench 1', 'Bench 2'])
+    expect(benchRows.map((row) => row.findAll('.print-grid-cell')[0].text())).toEqual([
+      'Bench',
+      'Bench'
+    ])
   })
 
   it('lists the fielding positions before the bench', () => {
@@ -66,7 +78,7 @@ describe('PrintView fielding sheet', () => {
       .slice(1)
       .map((row) => row.findAll('.print-grid-cell').map((cell) => cell.text()))
 
-    expect(secondInningRows.filter(([position]) => position.startsWith('Bench'))).toHaveLength(
+    expect(secondInningRows.filter(([position]) => position === 'Bench')).toHaveLength(
       testPlayers.length
     )
     // Every position is unfilled, so its player cell prints empty.
