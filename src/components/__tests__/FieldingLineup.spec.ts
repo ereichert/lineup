@@ -34,8 +34,18 @@ const mountComponent = () =>
     props: { numInnings: useGameConfigStore().numInnings }
   })
 
-const slotAt = (wrapper: ReturnType<typeof mountComponent>, inning: number, positionIdx: number) =>
+type Wrapper = ReturnType<typeof mountComponent>
+
+const slotAt = (wrapper: Wrapper, inning: number, positionIdx: number) =>
   wrapper.get(`[data-inning="${inning}"][data-position-idx="${positionIdx}"]`)
+
+const benchAt = (wrapper: Wrapper, inning: number) =>
+  wrapper.get(`[data-bench-inning="${inning}"]`)
+
+const benchNames = (wrapper: Wrapper, inning: number) =>
+  benchAt(wrapper, inning)
+    .findAll('.bench-player')
+    .map((player) => player.text())
 
 describe('FieldingLineup', () => {
   it('renders an empty slot for every position in every inning', () => {
@@ -46,48 +56,52 @@ describe('FieldingLineup', () => {
     expect(wrapper.findAll('.slot-empty')).toHaveLength(numInnings * fieldingPositions.length)
   })
 
-  it('lists every roster player in the available players pool', () => {
+  it('gives every inning its own bench holding the whole roster', () => {
+    const { numInnings } = useGameConfigStore()
     const wrapper = mountComponent()
-    const poolCards = wrapper.findAll('.player-card')
 
-    expect(poolCards).toHaveLength(testPlayers.length)
-    expect(poolCards.map((card) => card.text())).toEqual(testPlayers.map((player) => player.name))
+    expect(wrapper.findAll('[data-bench-inning]')).toHaveLength(numInnings)
+    for (let inning = 0; inning < numInnings; inning++) {
+      expect(benchNames(wrapper, inning)).toEqual(testPlayers.map((player) => player.name))
+    }
   })
 
-  it('assigns a player to a position when dragged from the pool onto a slot', async () => {
+  it('assigns a player dragged from an inning bench onto one of its positions', async () => {
     const wrapper = mountComponent()
 
-    await wrapper.findAll('.player-card')[0].trigger('dragstart')
+    await benchAt(wrapper, 0).findAll('.bench-player')[0].trigger('dragstart')
     await slotAt(wrapper, 0, PITCHER).trigger('drop')
 
     expect(useLineupsStore().fieldingLineup[0][PITCHER]?.id).toBe(testPlayers[0].id)
     expect(slotAt(wrapper, 0, PITCHER).text()).toContain(testPlayers[0].name)
   })
 
-  it('keeps every player in the pool after one is dragged onto a slot', async () => {
+  it('takes an assigned player off that inning bench and leaves other innings alone', async () => {
     const wrapper = mountComponent()
 
-    await wrapper.findAll('.player-card')[0].trigger('dragstart')
+    await benchAt(wrapper, 0).findAll('.bench-player')[0].trigger('dragstart')
     await slotAt(wrapper, 0, PITCHER).trigger('drop')
 
-    expect(wrapper.findAll('.player-card')).toHaveLength(testPlayers.length)
-    expect(usePlayersStore().players).toHaveLength(testPlayers.length)
+    expect(benchNames(wrapper, 0)).not.toContain(testPlayers[0].name)
+    expect(benchNames(wrapper, 0)).toHaveLength(testPlayers.length - 1)
+    expect(benchNames(wrapper, 1)).toHaveLength(testPlayers.length)
   })
 
-  it('replaces the player already in a slot when another is dropped on it', async () => {
+  it('replaces the player already in a position and returns them to the bench', async () => {
     const wrapper = mountComponent()
 
-    await wrapper.findAll('.player-card')[0].trigger('dragstart')
+    await benchAt(wrapper, 0).findAll('.bench-player')[0].trigger('dragstart')
     await slotAt(wrapper, 0, PITCHER).trigger('drop')
-    await wrapper.findAll('.player-card')[1].trigger('dragstart')
+    await benchAt(wrapper, 0).findAll('.bench-player')[0].trigger('dragstart')
     await slotAt(wrapper, 0, PITCHER).trigger('drop')
 
     expect(useLineupsStore().fieldingLineup[0][PITCHER]?.id).toBe(testPlayers[1].id)
+    expect(benchNames(wrapper, 0)).toContain(testPlayers[0].name)
   })
 
-  it('moves a player when dragged from one slot to another', async () => {
+  it('moves a player between positions in the same inning', async () => {
     const wrapper = mountComponent()
-    await wrapper.findAll('.player-card')[0].trigger('dragstart')
+    await benchAt(wrapper, 0).findAll('.bench-player')[0].trigger('dragstart')
     await slotAt(wrapper, 0, PITCHER).trigger('drop')
 
     await slotAt(wrapper, 0, PITCHER).get('.slot-content').trigger('dragstart')
@@ -97,32 +111,48 @@ describe('FieldingLineup', () => {
     expect(useLineupsStore().fieldingLineup[0][CENTER]?.id).toBe(testPlayers[0].id)
   })
 
+  it('unassigns a player dragged from a position back onto the bench', async () => {
+    const wrapper = mountComponent()
+    await benchAt(wrapper, 0).findAll('.bench-player')[0].trigger('dragstart')
+    await slotAt(wrapper, 0, PITCHER).trigger('drop')
+
+    await slotAt(wrapper, 0, PITCHER).get('.slot-content').trigger('dragstart')
+    await benchAt(wrapper, 0).trigger('drop')
+
+    expect(useLineupsStore().fieldingLineup[0][PITCHER]).toBeNull()
+    expect(benchNames(wrapper, 0)).toContain(testPlayers[0].name)
+  })
+
+  it('ignores a bench player dropped on a different innings position', async () => {
+    const wrapper = mountComponent()
+
+    await benchAt(wrapper, 0).findAll('.bench-player')[0].trigger('dragstart')
+    await slotAt(wrapper, 1, PITCHER).trigger('drop')
+
+    expect(useLineupsStore().fieldingLineup[1][PITCHER]).toBeNull()
+    expect(benchNames(wrapper, 0)).toHaveLength(testPlayers.length)
+  })
+
+  it('ignores an assigned player dropped on a different innings position', async () => {
+    const wrapper = mountComponent()
+    await benchAt(wrapper, 0).findAll('.bench-player')[0].trigger('dragstart')
+    await slotAt(wrapper, 0, PITCHER).trigger('drop')
+
+    await slotAt(wrapper, 0, PITCHER).get('.slot-content').trigger('dragstart')
+    await slotAt(wrapper, 1, CENTER).trigger('drop')
+
+    expect(useLineupsStore().fieldingLineup[0][PITCHER]?.id).toBe(testPlayers[0].id)
+    expect(useLineupsStore().fieldingLineup[1][CENTER]).toBeNull()
+  })
+
   it('empties a slot when its remove button is clicked', async () => {
     const wrapper = mountComponent()
-    await wrapper.findAll('.player-card')[0].trigger('dragstart')
+    await benchAt(wrapper, 0).findAll('.bench-player')[0].trigger('dragstart')
     await slotAt(wrapper, 0, PITCHER).trigger('drop')
 
     await slotAt(wrapper, 0, PITCHER).get('.slot-remove').trigger('click')
 
     expect(useLineupsStore().fieldingLineup[0][PITCHER]).toBeNull()
     expect(slotAt(wrapper, 0, PITCHER).find('.slot-empty').exists()).toBe(true)
-  })
-
-  it('shows the whole roster on the bench for an inning with no assignments', () => {
-    const wrapper = mountComponent()
-    const benchCells = wrapper.findAll('.bench-cell')
-
-    expect(benchCells[0].findAll('.bench-name')).toHaveLength(testPlayers.length)
-  })
-
-  it('drops a player off the bench once they are given a position', async () => {
-    const wrapper = mountComponent()
-
-    await wrapper.findAll('.player-card')[0].trigger('dragstart')
-    await slotAt(wrapper, 0, PITCHER).trigger('drop')
-
-    const benchNames = wrapper.findAll('.bench-cell')[0].findAll('.bench-name').map((n) => n.text())
-    expect(benchNames).not.toContain(testPlayers[0].name)
-    expect(benchNames).toHaveLength(testPlayers.length - 1)
   })
 })

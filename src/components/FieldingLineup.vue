@@ -1,15 +1,5 @@
 <template>
     <div class="fielding-lineup">
-        <section class="available-players">
-            <h3>Available Players</h3>
-            <ul class="players-pool">
-                <li v-for="player in players" :key="player.id" class="player-card" draggable="true"
-                    @dragstart="(event) => onPoolDragStart(event, player)" @dragend="onDragEnd">
-                    {{ player.name }}
-                </li>
-            </ul>
-        </section>
-
         <div class="lineup-grid" :style="gridStyle">
             <div class="grid-header">Position</div>
             <div v-for="inningIdx in inningIndexes" :key="`header-${inningIdx}`" class="grid-header">
@@ -25,14 +15,30 @@
                 </div>
             </div>
 
+            <div class="position-label">Bench</div>
+            <div v-for="inningIdx in inningIndexes" :key="`bench-${inningIdx}`" class="bench-cell"
+                :class="{ 'bench-cell--drag-over': isDragOverBench(inningIdx) }" :data-bench-inning="inningIdx"
+                @dragenter.prevent="onBenchDragEnter(inningIdx)" @dragover.prevent="onDragOver(inningIdx, $event)"
+                @dragleave="onBenchDragLeave(inningIdx)" @drop.prevent="onBenchDrop(inningIdx)">
+                <div v-for="benched in benchedPlayersByInning[inningIdx]" :key="benched.id" class="bench-player"
+                    draggable="true" @dragstart="(event) => onBenchDragStart(event, benched, inningIdx)"
+                    @dragend="onDragEnd">
+                    {{ benched.name }}
+                </div>
+                <span v-if="benchedPlayersByInning[inningIdx].length === 0" class="bench-empty">
+                    Everyone is playing
+                </span>
+            </div>
+
             <template v-for="(position, positionIdx) in fieldingPositions" :key="position">
                 <div class="position-label">{{ position }}</div>
                 <div v-for="inningIdx in inningIndexes" :key="`${position}-${inningIdx}`" class="slot" :class="{
                     'slot--filled': !!fieldingLineup[inningIdx][positionIdx],
-                    'slot--drag-over': isDragOver(inningIdx, positionIdx)
+                    'slot--drag-over': isDragOverSlot(inningIdx, positionIdx)
                 }" :data-inning="inningIdx" :data-position-idx="positionIdx"
-                    @dragenter.prevent="onDragEnter(inningIdx, positionIdx)" @dragover.prevent="onDragOver"
-                    @dragleave="onDragLeave(inningIdx, positionIdx)" @drop.prevent="onDrop(inningIdx, positionIdx)">
+                    @dragenter.prevent="onSlotDragEnter(inningIdx, positionIdx)"
+                    @dragover.prevent="onDragOver(inningIdx, $event)"
+                    @dragleave="onSlotDragLeave(inningIdx, positionIdx)" @drop.prevent="onSlotDrop(inningIdx, positionIdx)">
                     <div v-if="fieldingLineup[inningIdx][positionIdx]" class="slot-content" draggable="true"
                         @dragstart="(event) => onSlotDragStart(event, inningIdx, positionIdx)" @dragend="onDragEnd">
                         <span class="slot-name">{{ fieldingLineup[inningIdx][positionIdx]?.name }}</span>
@@ -44,14 +50,6 @@
                     <div v-else class="slot-empty">Empty</div>
                 </div>
             </template>
-
-            <div class="position-label">Bench</div>
-            <div v-for="inningIdx in inningIndexes" :key="`bench-${inningIdx}`" class="bench-cell">
-                <span v-if="benchedPlayersByInning[inningIdx].length === 0" class="bench-empty">&mdash;</span>
-                <span v-for="benched in benchedPlayersByInning[inningIdx]" :key="benched.id" class="bench-name">
-                    {{ benched.name }}
-                </span>
-            </div>
         </div>
 
         <div>
@@ -81,7 +79,7 @@ import { isOutfieldPosition, useGameConfigStore } from '@/stores/game-config';
 import { storeToRefs } from 'pinia';
 
 type DragSource =
-    | { source: 'pool'; player: Player }
+    | { source: 'bench'; player: Player; inning: number }
     | { source: 'slot'; player: Player; from: FieldingSlotRef }
 
 const props = defineProps<{
@@ -96,6 +94,7 @@ const { fieldingPositions } = storeToRefs(useGameConfigStore());
 const copiedInning = ref<Array<Player | null> | null>(null);
 const dragState = ref<DragSource | null>(null);
 const dragOverSlot = ref<FieldingSlotRef | null>(null);
+const dragOverBench = ref<number | null>(null);
 
 const inningIndexes = computed(() => Array.from({ length: props.numInnings }, (_, idx) => idx));
 
@@ -125,13 +124,26 @@ const aggregatedAssignments = computed(() => {
 // Re-entering the roster can leave players who are no longer on the team sitting in slots.
 watch(players, () => lineupsStore.sanitizeFieldingLineup(), { immediate: true });
 
-const isDragOver = (inning: number, positionIdx: number): boolean =>
+// A player is only ever moved around inside the inning they were picked up in.
+const draggedFromInning = computed(() => {
+    const currentDrag = dragState.value;
+    if (!currentDrag) {
+        return null;
+    }
+    return currentDrag.source === 'bench' ? currentDrag.inning : currentDrag.from.inning;
+});
+
+const canDropIn = (inning: number): boolean => draggedFromInning.value === inning;
+
+const isDragOverSlot = (inning: number, positionIdx: number): boolean =>
     dragOverSlot.value?.inning === inning && dragOverSlot.value?.positionIdx === positionIdx;
 
-const onPoolDragStart = (event: DragEvent, player: Player) => {
-    dragState.value = { source: 'pool', player };
+const isDragOverBench = (inning: number): boolean => dragOverBench.value === inning;
+
+const onBenchDragStart = (event: DragEvent, player: Player, inning: number) => {
+    dragState.value = { source: 'bench', player, inning };
     if (event.dataTransfer) {
-        event.dataTransfer.effectAllowed = 'copy';
+        event.dataTransfer.effectAllowed = 'move';
         event.dataTransfer.setData('text/plain', player.id);
     }
 };
@@ -149,42 +161,69 @@ const onSlotDragStart = (event: DragEvent, inning: number, positionIdx: number) 
     }
 };
 
-const onDragEnter = (inning: number, positionIdx: number) => {
-    dragOverSlot.value = { inning, positionIdx };
-};
-
-const onDragOver = (event: DragEvent) => {
+const onDragOver = (inning: number, event: DragEvent) => {
     if (event.dataTransfer) {
-        event.dataTransfer.dropEffect = dragState.value?.source === 'pool' ? 'copy' : 'move';
+        event.dataTransfer.dropEffect = canDropIn(inning) ? 'move' : 'none';
     }
 };
 
-const onDragLeave = (inning: number, positionIdx: number) => {
-    if (isDragOver(inning, positionIdx)) {
+const onSlotDragEnter = (inning: number, positionIdx: number) => {
+    if (canDropIn(inning)) {
+        dragOverSlot.value = { inning, positionIdx };
+    }
+};
+
+const onSlotDragLeave = (inning: number, positionIdx: number) => {
+    if (isDragOverSlot(inning, positionIdx)) {
         dragOverSlot.value = null;
     }
 };
 
-const onDrop = (inning: number, positionIdx: number) => {
-    const currentDrag = dragState.value;
-    dragState.value = null;
-    dragOverSlot.value = null;
+const onBenchDragEnter = (inning: number) => {
+    if (canDropIn(inning)) {
+        dragOverBench.value = inning;
+    }
+};
 
-    if (!currentDrag) {
+const onBenchDragLeave = (inning: number) => {
+    if (isDragOverBench(inning)) {
+        dragOverBench.value = null;
+    }
+};
+
+const onSlotDrop = (inning: number, positionIdx: number) => {
+    const currentDrag = dragState.value;
+    const droppedInSameInning = canDropIn(inning);
+    onDragEnd();
+
+    if (!currentDrag || !droppedInSameInning) {
         return;
     }
 
-    // Dragging from the pool copies the player; dragging a filled slot moves them.
-    if (currentDrag.source === 'pool') {
+    if (currentDrag.source === 'bench') {
         lineupsStore.assignPlayerToSlot(inning, positionIdx, currentDrag.player);
     } else {
         lineupsStore.moveFieldingSlot(currentDrag.from, { inning, positionIdx });
     }
 };
 
+// Dropping a player back on the bench gives up the position they were holding.
+const onBenchDrop = (inning: number) => {
+    const currentDrag = dragState.value;
+    const droppedInSameInning = canDropIn(inning);
+    onDragEnd();
+
+    if (!currentDrag || !droppedInSameInning || currentDrag.source !== 'slot') {
+        return;
+    }
+
+    lineupsStore.clearFieldingSlot(currentDrag.from.inning, currentDrag.from.positionIdx);
+};
+
 const onDragEnd = () => {
     dragState.value = null;
     dragOverSlot.value = null;
+    dragOverBench.value = null;
 };
 
 const clearSlot = (inning: number, positionIdx: number) => {
@@ -203,41 +242,6 @@ const pasteInning = (inning: number) => {
 </script>
 
 <style scoped>
-.available-players {
-    background-color: #f4f4f4;
-    padding: 12px 16px;
-    border-radius: 8px;
-    margin-bottom: 16px;
-}
-
-.available-players h3 {
-    margin-top: 0;
-    text-align: center;
-}
-
-.players-pool {
-    list-style-type: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    justify-content: center;
-}
-
-.player-card {
-    padding: 8px 12px;
-    background-color: #ffffff;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    cursor: grab;
-    user-select: none;
-}
-
-.player-card:active {
-    cursor: grabbing;
-}
-
 .lineup-grid {
     display: grid;
     gap: 4px;
@@ -261,6 +265,48 @@ const pasteInning = (inning: number) => {
     font-weight: bold;
     padding: 4px 8px;
     background-color: #f4f4f4;
+}
+
+.bench-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 6px 4px;
+    border: 1px dashed #bbb;
+    border-radius: 4px;
+    background-color: #fafafa;
+    min-height: 44px;
+    margin-bottom: 8px;
+}
+
+.bench-cell--drag-over {
+    border-color: #0077ff;
+    border-style: solid;
+    box-shadow: 0 0 0 2px rgba(0, 119, 255, 0.2);
+}
+
+.bench-player {
+    padding: 6px 8px;
+    background-color: #ffffff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    text-align: center;
+    cursor: grab;
+    user-select: none;
+}
+
+.bench-player:active {
+    cursor: grabbing;
+}
+
+.bench-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    color: #888;
+    font-style: italic;
+    font-size: 0.9em;
 }
 
 .slot {
@@ -326,26 +372,6 @@ const pasteInning = (inning: number) => {
     width: 100%;
     color: #888;
     font-style: italic;
-}
-
-.bench-cell {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    align-content: flex-start;
-    padding: 8px 4px;
-    border-top: 2px solid #ddd;
-}
-
-.bench-name {
-    padding: 2px 6px;
-    background-color: #f4f4f4;
-    border-radius: 4px;
-    font-size: 0.9em;
-}
-
-.bench-empty {
-    color: #888;
 }
 
 .inning-actions {
