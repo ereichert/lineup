@@ -17,42 +17,104 @@ beforeEach(() => {
   usePlayersStore().players = [...testPlayers]
 })
 
+const mountPrintView = () => mount(PrintView, { global: { stubs: { RouterLink: true } } })
+
 // PrintView reads the stores once at setup, so the lineup has to be in place before mounting.
-const mountWithFirstInningFilled = () => {
+const fillFirstInning = () => {
   const { fieldingPositions } = useGameConfigStore()
   const lineupsStore = useLineupsStore()
   lineupsStore.battingLineup = [...testPlayers]
   fieldingPositions.forEach((_, positionIdx) => {
     lineupsStore.assignPlayerToSlot(0, positionIdx, testPlayers[positionIdx])
   })
-
-  return mount(PrintView, { global: { stubs: { RouterLink: true } } })
 }
 
-const fieldingRows = (wrapper: ReturnType<typeof mountWithFirstInningFilled>) =>
-  wrapper
-    .findAll('.print-grid')[0]
-    .findAll('.print-grid-row')
-    .slice(1)
-    .map((row) => row.findAll('.print-grid-cell').map((cell) => cell.text()))
+// Shifting the roster by one each inning fills every position in every inning and leaves a
+// different pair on the bench each time, so the sheet has something to show in every cell.
+const fillEveryInning = () => {
+  const { numInnings, fieldingPositions } = useGameConfigStore()
+  const lineupsStore = useLineupsStore()
+  lineupsStore.battingLineup = [...testPlayers]
+  for (let inning = 0; inning < numInnings; inning++) {
+    fieldingPositions.forEach((_, positionIdx) => {
+      lineupsStore.assignPlayerToSlot(
+        inning,
+        positionIdx,
+        testPlayers[(inning + positionIdx) % testPlayers.length]
+      )
+    })
+  }
+}
+
+type Wrapper = ReturnType<typeof mountPrintView>
+
+const fieldingGrid = (wrapper: Wrapper) => wrapper.findAll('.print-grid')[0]
+
+const rowsOf = (grid: ReturnType<typeof fieldingGrid>) =>
+  grid.findAll('.print-grid-row').map((row) => row.findAll('.print-grid-cell').map((c) => c.text()))
 
 describe('PrintView fielding sheet', () => {
-  it('gives every benched player their own row, without a bench number', () => {
-    const { fieldingPositions } = useGameConfigStore()
-    const rows = fieldingRows(mountWithFirstInningFilled())
-    const benchRows = rows.filter(([position]) => position === 'Bench')
+  it('gives every inning its own column on a single sheet', () => {
+    const { numInnings } = useGameConfigStore()
+    fillEveryInning()
 
-    expect(benchRows).toEqual([
-      ['Bench', 'Player J'],
-      ['Bench', 'Player K']
+    const [header] = rowsOf(fieldingGrid(mountPrintView()))
+
+    expect(header).toEqual(['Position', '1', '2', '3', '4', '5', '6'])
+    expect(header).toHaveLength(numInnings + 1)
+    // The old sheet repeated a two column table per inning; there is only one grid per lineup now.
+    expect(mountPrintView().findAll('.print-grid')).toHaveLength(2)
+  })
+
+  it('reads one position across all of the innings', () => {
+    fillEveryInning()
+
+    const [pitcherRow] = rowsOf(fieldingGrid(mountPrintView())).slice(1)
+
+    expect(pitcherRow).toEqual([
+      'Pitcher',
+      'Player A',
+      'Player B',
+      'Player C',
+      'Player D',
+      'Player E',
+      'Player F'
     ])
-    expect(rows).toHaveLength(fieldingPositions.length + benchRows.length)
+  })
+
+  it('lists the fielding positions before the bench', () => {
+    const { fieldingPositions } = useGameConfigStore()
+    fillEveryInning()
+
+    const rows = rowsOf(fieldingGrid(mountPrintView())).slice(1)
+
+    expect(rows.slice(0, fieldingPositions.length).map(([position]) => position)).toEqual(
+      fieldingPositions
+    )
+    expect(rows.slice(fieldingPositions.length).map(([position]) => position)).toEqual([
+      'Bench',
+      'Bench'
+    ])
+  })
+
+  it('gives every benched player their own row, without a bench number', () => {
+    fillEveryInning()
+
+    const benchRows = rowsOf(fieldingGrid(mountPrintView())).filter(
+      ([position]) => position === 'Bench'
+    )
+
+    // Roster order decides which of the two benched players lands on which row.
+    expect(benchRows).toEqual([
+      ['Bench', 'Player J', 'Player A', 'Player A', 'Player B', 'Player C', 'Player D'],
+      ['Bench', 'Player K', 'Player K', 'Player B', 'Player C', 'Player D', 'Player E']
+    ])
   })
 
   it('still numbers the bench rows underneath the label it prints', () => {
-    const benchRows = mountWithFirstInningFilled()
-      .findAll('.print-grid')[0]
-      .findAll('[data-position^="Bench"]')
+    fillEveryInning()
+
+    const benchRows = fieldingGrid(mountPrintView()).findAll('[data-position^="Bench"]')
 
     expect(benchRows.map((row) => row.attributes('data-position'))).toEqual(['Bench 1', 'Bench 2'])
     expect(benchRows.map((row) => row.findAll('.print-grid-cell')[0].text())).toEqual([
@@ -61,35 +123,49 @@ describe('PrintView fielding sheet', () => {
     ])
   })
 
-  it('lists the fielding positions before the bench', () => {
-    const { fieldingPositions } = useGameConfigStore()
-    const rows = fieldingRows(mountWithFirstInningFilled())
+  it('leaves a cell blank for a position nobody was assigned to', () => {
+    fillFirstInning()
 
-    expect(rows.slice(0, fieldingPositions.length).map(([position]) => position)).toEqual(
-      fieldingPositions
-    )
+    const [pitcherRow] = rowsOf(fieldingGrid(mountPrintView())).slice(1)
+
+    expect(pitcherRow).toEqual(['Pitcher', 'Player A', '', '', '', '', ''])
   })
 
   it('benches the whole roster for an inning that was never filled in', () => {
-    const wrapper = mountWithFirstInningFilled()
-    const secondInningRows = wrapper
-      .findAll('.print-grid')[2]
-      .findAll('.print-grid-row')
-      .slice(1)
-      .map((row) => row.findAll('.print-grid-cell').map((cell) => cell.text()))
+    fillFirstInning()
 
-    expect(secondInningRows.filter(([position]) => position === 'Bench')).toHaveLength(
-      testPlayers.length
+    const benchRows = rowsOf(fieldingGrid(mountPrintView())).filter(
+      ([position]) => position === 'Bench'
     )
-    // Every position is unfilled, so its player cell prints empty.
-    expect(secondInningRows[0]).toEqual(['Pitcher', ''])
+
+    // Innings two through six are untouched, so the bench is as deep as the whole roster.
+    expect(benchRows).toHaveLength(testPlayers.length)
+    // Only the two players left out of inning one are benched in it.
+    expect(benchRows.map((row) => row[1])).toEqual([
+      'Player J',
+      'Player K',
+      ...Array(testPlayers.length - 2).fill('')
+    ])
+    expect(benchRows.map((row) => row[2])).toEqual(testPlayers.map((player) => player.name))
+  })
+})
+
+describe('PrintView batting sheet', () => {
+  it('prints the batting order once rather than once per inning', () => {
+    fillEveryInning()
+
+    const battingRows = rowsOf(mountPrintView().findAll('.print-grid')[1]).slice(1)
+
+    expect(battingRows).toEqual(
+      testPlayers.map((player, idx) => [String(idx + 1), player.name])
+    )
   })
 })
 
 describe('PrintView navigation', () => {
   it('sends the edit view links back to the lineup editor', () => {
-    const wrapper = mountWithFirstInningFilled()
-    const links = wrapper.findAll('router-link-stub')
+    fillEveryInning()
+    const links = mountPrintView().findAll('router-link-stub')
 
     expect(links.length).toBeGreaterThan(0)
     links.forEach((link) => {
