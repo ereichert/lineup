@@ -85,3 +85,15 @@ describe('PrintView fielding sheet', () => {
     expect(secondInningRows[0]).toEqual(['Pitcher', ''])
   })
 })
+
+describe('PrintView navigation', () => {
+  it('sends the edit view links back to the lineup editor', () => {
+    const wrapper = mountWithFirstInningFilled()
+    const links = wrapper.findAll('router-link-stub')
+
+    expect(links.length).toBeGreaterThan(0)
+    links.forEach((link) => {
+      expect(link.attributes('to')).toBe('/editlineups')
+    })
+  })
+})

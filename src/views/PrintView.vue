@@ -1,5 +1,5 @@
 <template>
-    <RouterLink to="/" class="hidden-print">Go to edit view.</RouterLink>
+    <RouterLink to="/editlineups" class="hidden-print">Go to edit view.</RouterLink>
     <div v-for="inningLineup in fieldingLineupPrintView" :key="inningLineup.inning">
         <h1>Inning {{ inningLineup.inning }}</h1>
         <h2>Fielding Lineup</h2>
@@ -29,7 +29,7 @@
         </div>
         <div class="page-break"> </div>
     </div>
-    <RouterLink to="/" class="hidden-print">Go to edit view.</RouterLink>
+    <RouterLink to="/editlineups" class="hidden-print">Go to edit view.</RouterLink>
 </template>
 
 <script setup lang="ts">
