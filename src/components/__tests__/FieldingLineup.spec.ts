@@ -1,0 +1,128 @@
+import { mount } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
+import { describe, it, expect, beforeEach } from 'vitest'
+import FieldingLineup from '@/components/FieldingLineup.vue'
+import Player from '@/models/Player'
+import { useGameConfigStore } from '@/stores/game-config'
+import { useLineupsStore } from '@/stores/lineups'
+import { usePlayersStore } from '@/stores/players'
+
+const testPlayers: Array<Player> = [
+  new Player('01951f0d-77fd-70a7-a372-83ca9ea40b85', 'Player A'),
+  new Player('01951f0d-77fd-7550-86d0-2e58561ecefc', 'Player B'),
+  new Player('01951f0d-77fd-7a5b-ab23-bb9b3bec5014', 'Player C'),
+  new Player('01951f0d-77fd-75e8-a296-493dcbcefd41', 'Player D'),
+  new Player('01951f0d-77fd-7baf-9343-307713947988', 'Player E'),
+  new Player('01951f0d-77fd-7b35-9d3e-32770c204350', 'Player F'),
+  new Player('01951f0d-77fd-7398-aab2-16672864c9bf', 'Player G'),
+  new Player('01951f0d-77fd-7359-9ae2-8f2302816a8a', 'Player H'),
+  new Player('01951f0d-77fd-7858-a3fc-feed01e94f3d', 'Player I'),
+  new Player('01951f0d-77fd-7d61-8407-42b9242413e1', 'Player J'),
+  new Player('01951f0d-77fd-7535-90ad-7d33746e3ce0', 'Player K')
+]
+
+const PITCHER = 0
+const CENTER = 7
+
+beforeEach(() => {
+  setActivePinia(createPinia())
+  usePlayersStore().players = [...testPlayers]
+})
+
+const mountComponent = () =>
+  mount(FieldingLineup, {
+    props: { numInnings: useGameConfigStore().numInnings }
+  })
+
+const slotAt = (wrapper: ReturnType<typeof mountComponent>, inning: number, positionIdx: number) =>
+  wrapper.get(`[data-inning="${inning}"][data-position-idx="${positionIdx}"]`)
+
+describe('FieldingLineup', () => {
+  it('renders an empty slot for every position in every inning', () => {
+    const { numInnings, fieldingPositions } = useGameConfigStore()
+    const wrapper = mountComponent()
+
+    expect(wrapper.findAll('.slot')).toHaveLength(numInnings * fieldingPositions.length)
+    expect(wrapper.findAll('.slot-empty')).toHaveLength(numInnings * fieldingPositions.length)
+  })
+
+  it('lists every roster player in the available players pool', () => {
+    const wrapper = mountComponent()
+    const poolCards = wrapper.findAll('.player-card')
+
+    expect(poolCards).toHaveLength(testPlayers.length)
+    expect(poolCards.map((card) => card.text())).toEqual(testPlayers.map((player) => player.name))
+  })
+
+  it('assigns a player to a position when dragged from the pool onto a slot', async () => {
+    const wrapper = mountComponent()
+
+    await wrapper.findAll('.player-card')[0].trigger('dragstart')
+    await slotAt(wrapper, 0, PITCHER).trigger('drop')
+
+    expect(useLineupsStore().fieldingLineup[0][PITCHER]?.id).toBe(testPlayers[0].id)
+    expect(slotAt(wrapper, 0, PITCHER).text()).toContain(testPlayers[0].name)
+  })
+
+  it('keeps every player in the pool after one is dragged onto a slot', async () => {
+    const wrapper = mountComponent()
+
+    await wrapper.findAll('.player-card')[0].trigger('dragstart')
+    await slotAt(wrapper, 0, PITCHER).trigger('drop')
+
+    expect(wrapper.findAll('.player-card')).toHaveLength(testPlayers.length)
+    expect(usePlayersStore().players).toHaveLength(testPlayers.length)
+  })
+
+  it('replaces the player already in a slot when another is dropped on it', async () => {
+    const wrapper = mountComponent()
+
+    await wrapper.findAll('.player-card')[0].trigger('dragstart')
+    await slotAt(wrapper, 0, PITCHER).trigger('drop')
+    await wrapper.findAll('.player-card')[1].trigger('dragstart')
+    await slotAt(wrapper, 0, PITCHER).trigger('drop')
+
+    expect(useLineupsStore().fieldingLineup[0][PITCHER]?.id).toBe(testPlayers[1].id)
+  })
+
+  it('moves a player when dragged from one slot to another', async () => {
+    const wrapper = mountComponent()
+    await wrapper.findAll('.player-card')[0].trigger('dragstart')
+    await slotAt(wrapper, 0, PITCHER).trigger('drop')
+
+    await slotAt(wrapper, 0, PITCHER).get('.slot-content').trigger('dragstart')
+    await slotAt(wrapper, 0, CENTER).trigger('drop')
+
+    expect(useLineupsStore().fieldingLineup[0][PITCHER]).toBeNull()
+    expect(useLineupsStore().fieldingLineup[0][CENTER]?.id).toBe(testPlayers[0].id)
+  })
+
+  it('empties a slot when its remove button is clicked', async () => {
+    const wrapper = mountComponent()
+    await wrapper.findAll('.player-card')[0].trigger('dragstart')
+    await slotAt(wrapper, 0, PITCHER).trigger('drop')
+
+    await slotAt(wrapper, 0, PITCHER).get('.slot-remove').trigger('click')
+
+    expect(useLineupsStore().fieldingLineup[0][PITCHER]).toBeNull()
+    expect(slotAt(wrapper, 0, PITCHER).find('.slot-empty').exists()).toBe(true)
+  })
+
+  it('shows the whole roster on the bench for an inning with no assignments', () => {
+    const wrapper = mountComponent()
+    const benchCells = wrapper.findAll('.bench-cell')
+
+    expect(benchCells[0].findAll('.bench-name')).toHaveLength(testPlayers.length)
+  })
+
+  it('drops a player off the bench once they are given a position', async () => {
+    const wrapper = mountComponent()
+
+    await wrapper.findAll('.player-card')[0].trigger('dragstart')
+    await slotAt(wrapper, 0, PITCHER).trigger('drop')
+
+    const benchNames = wrapper.findAll('.bench-cell')[0].findAll('.bench-name').map((n) => n.text())
+    expect(benchNames).not.toContain(testPlayers[0].name)
+    expect(benchNames).toHaveLength(testPlayers.length - 1)
+  })
+})

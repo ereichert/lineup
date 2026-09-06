@@ -33,17 +33,28 @@
 
 <script setup lang="ts">
 import { useLineupsStore } from '@/stores/lineups';
+import { useGameConfigStore } from '@/stores/game-config';
 import PositionAssignmentPrintView from '@/models/PositionAssignmentPrintView';
 import InningFieldingLineupPrintView from '@/models/InningFieldingLineupPrintView';
 import BattingAssignmentPrintView from '@/models/BattingAssignmentPrintView';
 
-const { battingLineup, fieldingLineup, fieldingAndBenchPositions } = useLineupsStore();
+const lineupsStore = useLineupsStore();
+const { battingLineup } = lineupsStore;
+const { fieldingPositions } = useGameConfigStore();
 
 const getFieldingLineupPrintView = (): InningFieldingLineupPrintView[] => {
-    return fieldingLineup.map((fieldingSelections, inning) => {
-        const positionAssignments = fieldingSelections.map((player, positionIdx) => {
-            return new PositionAssignmentPrintView(fieldingAndBenchPositions[positionIdx], player.name)
+    return lineupsStore.fieldingLineup.map((inningLineup, inning) => {
+        const positionAssignments = inningLineup.map((slot, positionIdx) => {
+            return new PositionAssignmentPrintView(fieldingPositions[positionIdx], slot ? slot.name : '')
         });
+
+        // The bench is derived from whoever holds no position, so it is appended rather than stored.
+        const benchedPlayers = lineupsStore.benchedPlayersByInning[inning];
+        if (benchedPlayers.length > 0) {
+            const benchedNames = benchedPlayers.map((player) => player.name).join(', ');
+            positionAssignments.push(new PositionAssignmentPrintView('Bench', benchedNames));
+        }
+
         return new InningFieldingLineupPrintView((inning + 1).toString(), positionAssignments)
     })
 }

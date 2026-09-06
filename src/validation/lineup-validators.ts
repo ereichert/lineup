@@ -1,6 +1,5 @@
 import type Player from '@/models/Player'
-import { FieldingPositions } from '@/stores/game-config'
-import { useLineupsStore } from '@/stores/lineups'
+import { isOutfieldPosition, useGameConfigStore } from '@/stores/game-config'
 
 const isValidBattingLineup = (players: Array<Player>, battingLineup: Array<Player>): boolean => {
   const battingLineupIds = battingLineup.map((player) => player.id)
@@ -21,25 +20,43 @@ const isValidBattingLineup = (players: Array<Player>, battingLineup: Array<Playe
 
 const isValidFieldingLineup = (
   players: Array<Player>,
-  fieldingLineup: Array<Array<Player>>
+  fieldingLineup: Array<Array<Player | null>>
 ): boolean => {
+  const { fieldingPositions } = useGameConfigStore()
+  const rosterIds = new Set(players.map((player) => player.id))
   let isValid = true
-  for (let inning = 0; inning < fieldingLineup.length; inning++) {
-    const nextFieldingLineup = fieldingLineup[inning]
-    // This case probably means the correct number of bench players were not added to the initial lineup.
-    // If the correct number of bench players were not added to the initial lineup the lineup editing view should
-    // not show the correct number of bench positions.
-    if (nextFieldingLineup.length !== players.length) {
+
+  for (const inningLineup of fieldingLineup) {
+    // Every inning holds exactly one slot per fielding position.
+    if (inningLineup.length !== fieldingPositions.length) {
       isValid = false
       break
     }
 
-    // Since we have validated that the lineup has the same number of available players
-    // the only way this case can happen is if one of the players has not been assigned a fielding position during
-    // one of the innings. This most likely means a player was selected twice also.
-    const fieldingLineupIds = nextFieldingLineup.map((player) => player.id)
-    if (players.filter((player) => !fieldingLineupIds.includes(player.id)).length !== 0) {
-      isValid = false
+    const assignedIds = new Set<string>()
+    for (const slot of inningLineup) {
+      // An unfilled position means the lineup is not ready to be printed.
+      if (!slot) {
+        isValid = false
+        break
+      }
+
+      // A player cannot cover two positions during the same inning.
+      if (assignedIds.has(slot.id)) {
+        isValid = false
+        break
+      }
+
+      // A player left over from an earlier roster is no longer assignable.
+      if (!rosterIds.has(slot.id)) {
+        isValid = false
+        break
+      }
+
+      assignedIds.add(slot.id)
+    }
+
+    if (!isValid) {
       break
     }
   }
@@ -54,44 +71,40 @@ const isValidFieldingLineup = (
 }
 
 const hasAllPlayersAssignedToAnOutfieldPosition = (
-  fieldingLineup: Array<Array<Player>>
+  players: Array<Player>,
+  fieldingLineup: Array<Array<Player | null>>
 ): boolean => {
-  const { fieldingAndBenchPositions } = useLineupsStore()
-  const positionTracker: Record<string, Set<string>> = {}
+  const { fieldingPositions } = useGameConfigStore()
+  const outfieldPlayerIds = new Set<string>()
 
-  fieldingLineup.forEach((inning) => {
-    inning.forEach((player, idx) => {
-      if (!positionTracker[player.name]) {
-        positionTracker[player.name] = new Set()
+  fieldingLineup.forEach((inningLineup) => {
+    inningLineup.forEach((slot, positionIdx) => {
+      if (slot && isOutfieldPosition(fieldingPositions[positionIdx])) {
+        outfieldPlayerIds.add(slot.id)
       }
-      positionTracker[player.name].add(fieldingAndBenchPositions[idx])
     })
   })
 
-  const playersMissingOutfieldAssignments = Object.keys(positionTracker).filter((playerName) => {
-    const positions = positionTracker[playerName]
-    if (
-      !positions.has(FieldingPositions.RIGHT) &&
-      !positions.has(FieldingPositions.CENTER) &&
-      !positions.has(FieldingPositions.LEFT)
-    ) {
-      return playerName
-    }
-  })
+  // Checked against the roster rather than against the players found in the lineup, because a
+  // player who was never assigned anywhere has no outfield inning either.
+  const playersMissingOutfieldAssignments = players.filter(
+    (player) => !outfieldPlayerIds.has(player.id)
+  )
 
   if (playersMissingOutfieldAssignments.length > 0) {
-    console.info(`Players missing an outfield assignment: ${playersMissingOutfieldAssignments}`)
+    const missingNames = playersMissingOutfieldAssignments.map((player) => player.name)
+    console.info(`Players missing an outfield assignment: ${missingNames}`)
     return false
-  } else {
-    console.info('All players are assigned to right, center, and left at least once.')
-    return true
   }
+
+  console.info('All players are assigned to left, center, or right at least once.')
+  return true
 }
 
 export interface ParticipationRule {
   id: string
   label: string
-  validate: (fieldingLineup: Array<Array<Player>>) => boolean
+  validate: (players: Array<Player>, fieldingLineup: Array<Array<Player | null>>) => boolean
 }
 
 const participationRules: Array<ParticipationRule> = [
@@ -105,7 +118,7 @@ const participationRules: Array<ParticipationRule> = [
 const isPrintViewAllowed = (
   players: Array<Player>,
   battingLineup: Array<Player>,
-  fieldingLineup: Array<Array<Player>>,
+  fieldingLineup: Array<Array<Player | null>>,
   enabledRules: Record<string, boolean>
 ): boolean => {
   const structuralChecksPass =
@@ -115,7 +128,7 @@ const isPrintViewAllowed = (
     structuralChecksPass &&
     participationRules
       .filter((rule) => enabledRules[rule.id])
-      .every((rule) => rule.validate(fieldingLineup))
+      .every((rule) => rule.validate(players, fieldingLineup))
   )
 }
 

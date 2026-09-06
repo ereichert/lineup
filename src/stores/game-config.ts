@@ -12,7 +12,14 @@ export const FieldingPositions = Object.freeze({
   RIGHT: 'Right'
 })
 
-export const BENCH_PREFIX = 'Bench'
+const OUTFIELD_POSITIONS: ReadonlyArray<string> = [
+  FieldingPositions.LEFT,
+  FieldingPositions.CENTER,
+  FieldingPositions.RIGHT
+]
+
+export const isOutfieldPosition = (position: string): boolean =>
+  OUTFIELD_POSITIONS.includes(position)
 
 export const useGameConfigStore = defineStore('gameConfigStore', {
   state: () => {

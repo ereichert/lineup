@@ -1,7 +1,7 @@
 import Player from '@/models/Player'
 import luValidations from '@/validation/lineup-validators'
 import { createPinia, setActivePinia } from 'pinia'
-import { describe, it, expect, beforeAll } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 
 const testPlayers: Array<Player> = [
   new Player('01951f0d-77fd-70a7-a372-83ca9ea40b85', 'Player A'),
@@ -17,126 +17,76 @@ const testPlayers: Array<Player> = [
   new Player('01951f0d-77fd-7535-90ad-7d33746e3ce0', 'Player K')
 ]
 
-const testCompleteBattingLineup: Array<Player> = [
-  new Player('01951f0d-77fd-70a7-a372-83ca9ea40b85', 'Player A'),
-  new Player('01951f0d-77fd-7550-86d0-2e58561ecefc', 'Player B'),
-  new Player('01951f0d-77fd-7a5b-ab23-bb9b3bec5014', 'Player C'),
-  new Player('01951f0d-77fd-75e8-a296-493dcbcefd41', 'Player D'),
-  new Player('01951f0d-77fd-7baf-9343-307713947988', 'Player E'),
-  new Player('01951f0d-77fd-7b35-9d3e-32770c204350', 'Player F'),
-  new Player('01951f0d-77fd-7398-aab2-16672864c9bf', 'Player G'),
-  new Player('01951f0d-77fd-7359-9ae2-8f2302816a8a', 'Player H'),
-  new Player('01951f0d-77fd-7858-a3fc-feed01e94f3d', 'Player I'),
-  new Player('01951f0d-77fd-7d61-8407-42b9242413e1', 'Player J'),
-  new Player('01951f0d-77fd-7535-90ad-7d33746e3ce0', 'Player K')
-]
+const testCompleteBattingLineup: Array<Player> = [...testPlayers]
 
 const testIncompleteBattingLineup: Array<Player> = [
-  new Player('01951f0d-77fd-70a7-a372-83ca9ea40b85', 'Player A'),
-  new Player('01951f0d-77fd-7a5b-ab23-bb9b3bec5014', 'Player C'),
-  new Player('01951f0d-77fd-75e8-a296-493dcbcefd41', 'Player D'),
-  new Player('01951f0d-77fd-7b35-9d3e-32770c204350', 'Player F'),
-  new Player('01951f0d-77fd-7398-aab2-16672864c9bf', 'Player G'),
-  new Player('01951f0d-77fd-7359-9ae2-8f2302816a8a', 'Player H'),
-  new Player('01951f0d-77fd-7d61-8407-42b9242413e1', 'Player J'),
-  new Player('01951f0d-77fd-7535-90ad-7d33746e3ce0', 'Player K')
+  testPlayers[0],
+  testPlayers[2],
+  testPlayers[3],
+  testPlayers[5],
+  testPlayers[6],
+  testPlayers[7],
+  testPlayers[9],
+  testPlayers[10]
 ]
 
 const NUM_INNINGS = 6
-let testCompleteFieldingLineup = new Array<Array<Player>>(NUM_INNINGS)
+const NUM_POSITIONS = 9
+const PITCHER = 0
 
-const initTestFieldingLineup = (fieldingLineup: Array<Array<Player>>): Array<Array<Player>> => {
-  for (let i = 0; i < fieldingLineup.length; i++) {
-    fieldingLineup[i] = [...testPlayers]
-  }
-  return fieldingLineup
-}
+// Rotating the roster by three each inning fills all nine positions and works every player
+// through left, center and right (positions 6, 7 and 8) at least once.
+const rotatedFieldingLineup = (): Array<Array<Player | null>> =>
+  Array.from({ length: NUM_INNINGS }, (_, inning) => {
+    const offset = (inning * 3) % testPlayers.length
+    const rotated = [...testPlayers.slice(offset), ...testPlayers.slice(0, offset)]
+    return rotated.slice(0, NUM_POSITIONS) as Array<Player | null>
+  })
 
-beforeAll(() => {
-  testCompleteFieldingLineup = initTestFieldingLineup(testCompleteFieldingLineup)
+// The same nine players every inning, so the last two on the roster are never assigned at all.
+const sameNinePlayersEveryInning = (): Array<Array<Player | null>> =>
+  Array.from(
+    { length: NUM_INNINGS },
+    () => testPlayers.slice(0, NUM_POSITIONS) as Array<Player | null>
+  )
+
+// A full lineup in which Player A pitches every inning and so never reaches the outfield.
+const playerAlwaysPitching = (): Array<Array<Player | null>> =>
+  rotatedFieldingLineup().map((inningLineup) => {
+    const lineup = [...inningLineup]
+    const currentIdx = lineup.findIndex((slot) => slot?.id === testPlayers[0].id)
+    if (currentIdx === -1) {
+      lineup[PITCHER] = testPlayers[0]
+    } else {
+      lineup[currentIdx] = lineup[PITCHER]
+      lineup[PITCHER] = testPlayers[0]
+    }
+    return lineup
+  })
+
+beforeEach(() => {
   setActivePinia(createPinia())
 })
 
 describe('outfield position assignments', () => {
   it('should pass when all players have at least one outfield position', () => {
-    const testFieldingLineupWithRotatedOutfielders = initTestFieldingLineup(
-      new Array<Array<Player>>(NUM_INNINGS)
-    )
-
-    // Rotate the lineup by 3 positions each inning after the first inning.
-    // Make sure all players have at least one outfield position.
-    for (let i = 1; i < NUM_INNINGS; i++) {
-      const inningFieldingLineup = testFieldingLineupWithRotatedOutfielders[i - 1]
-      const shiftAmount = 3
-      const newHead = inningFieldingLineup.slice(-shiftAmount)
-      testFieldingLineupWithRotatedOutfielders[i] = [
-        ...newHead,
-        ...inningFieldingLineup.slice(0, -shiftAmount)
-      ]
-    }
-
     expect(
-      luValidations.hasAllPlayersAssignedToAnOutfieldPosition(
-        testFieldingLineupWithRotatedOutfielders
-      )
+      luValidations.hasAllPlayersAssignedToAnOutfieldPosition(testPlayers, rotatedFieldingLineup())
     ).toBeTruthy()
   })
 
-  it('should fail when at least one player is not assigned to an outfield position', () => {
-    const testFieldingLineupWithRotatedOutfielders = initTestFieldingLineup(
-      new Array<Array<Player>>(NUM_INNINGS)
-    )
-
-    // Rotate the lineup by 3 positions each inning after the first inning.
-    // Make sure Player A is only assigned as a pitcher.
-    for (let i = 1; i < NUM_INNINGS; i++) {
-      const inningFieldingLineup = testFieldingLineupWithRotatedOutfielders[i - 1]
-      const shiftAmount = 3
-      const newHead = inningFieldingLineup.slice(-shiftAmount)
-      testFieldingLineupWithRotatedOutfielders[i] = [
-        inningFieldingLineup[0],
-        ...newHead,
-        ...inningFieldingLineup.slice(1, -shiftAmount)
-      ]
-    }
-
+  it('should fail when a player is never assigned to any position', () => {
     expect(
       luValidations.hasAllPlayersAssignedToAnOutfieldPosition(
-        testFieldingLineupWithRotatedOutfielders
+        testPlayers,
+        sameNinePlayersEveryInning()
       )
     ).toBeFalsy()
   })
 
-  it('should fail when player only has infield and bench positions', () => {
-    const testFieldingLineupWithRotatedOutfielders = initTestFieldingLineup(
-      new Array<Array<Player>>(NUM_INNINGS)
-    )
-
-    // Make sure Player A is only assigned to infield and bench positions.
-    for (let i = 1; i < NUM_INNINGS; i++) {
-      const inningFieldingLineup = testFieldingLineupWithRotatedOutfielders[i - 1]
-      const shiftAmount = 3
-      if (i % 2 === 0) {
-        // assign player A as the pitcher
-        testFieldingLineupWithRotatedOutfielders[i] = [
-          ...inningFieldingLineup.slice(-1),
-          ...inningFieldingLineup.slice(7, 10),
-          ...inningFieldingLineup.slice(0, 7)
-        ]
-      } else {
-        // assign Player A to a bench position
-        testFieldingLineupWithRotatedOutfielders[i] = [
-          ...inningFieldingLineup.slice(-shiftAmount),
-          ...inningFieldingLineup.slice(1, 8),
-          inningFieldingLineup[0]
-        ]
-      }
-    }
-
+  it('should fail when a player only ever plays an infield position', () => {
     expect(
-      luValidations.hasAllPlayersAssignedToAnOutfieldPosition(
-        testFieldingLineupWithRotatedOutfielders
-      )
+      luValidations.hasAllPlayersAssignedToAnOutfieldPosition(testPlayers, playerAlwaysPitching())
     ).toBeFalsy()
   })
 })
@@ -169,59 +119,47 @@ describe('lineup validators', () => {
   })
 
   describe('fielding lineups', () => {
-    it('should fail validation if players are missing in the fielding lineup in any inning.', () => {
-      const testIncompleteFieldingLineup = initTestFieldingLineup(
-        new Array<Array<Player>>(NUM_INNINGS)
-      )
-      // This will pass the length check but will fail the missing player check.
-      testIncompleteFieldingLineup[3][3] = new Player('', 'Player ID missing')
-      expect(
-        luValidations.isValidFieldingLineup(testPlayers, testIncompleteFieldingLineup)
-      ).toBeFalsy()
+    it('should pass validation when every position is filled in every inning.', () => {
+      expect(luValidations.isValidFieldingLineup(testPlayers, rotatedFieldingLineup())).toBeTruthy()
     })
 
-    it('should pass validation if all of the players are included in the fielding lineup each inning.', () => {
-      expect(
-        luValidations.isValidFieldingLineup(testPlayers, testCompleteFieldingLineup)
-      ).toBeTruthy()
+    it('should fail validation if a position is left empty in any inning.', () => {
+      const fieldingLineup = rotatedFieldingLineup()
+      fieldingLineup[3][3] = null
+
+      expect(luValidations.isValidFieldingLineup(testPlayers, fieldingLineup)).toBeFalsy()
     })
 
-    it('should fail validation if the fielding lineup does not include the exact number of players each inning.', () => {
-      const testIncompleteFieldingLineup = initTestFieldingLineup(
-        new Array<Array<Player>>(NUM_INNINGS)
-      )
-      delete testIncompleteFieldingLineup[3][3]
-      expect(
-        luValidations.isValidFieldingLineup(testPlayers, testIncompleteFieldingLineup)
-      ).toBeFalsy()
+    it('should fail validation if a player covers two positions in the same inning.', () => {
+      const fieldingLineup = rotatedFieldingLineup()
+      fieldingLineup[0][1] = fieldingLineup[0][0]
+
+      expect(luValidations.isValidFieldingLineup(testPlayers, fieldingLineup)).toBeFalsy()
     })
 
-    it('should pass validation if the fielding lineup includes the exact number of players each inning.', () => {
-      expect(
-        luValidations.isValidFieldingLineup(testPlayers, testCompleteFieldingLineup)
-      ).toBeTruthy()
+    it('should fail validation if a position is held by someone who is not on the roster.', () => {
+      const fieldingLineup = rotatedFieldingLineup()
+      fieldingLineup[0][0] = new Player('01951f0d-77fd-7000-0000-000000000000', 'Not On Roster')
+
+      expect(luValidations.isValidFieldingLineup(testPlayers, fieldingLineup)).toBeFalsy()
+    })
+
+    it('should fail validation if an inning does not have a slot for every position.', () => {
+      const fieldingLineup = rotatedFieldingLineup()
+      fieldingLineup[2] = fieldingLineup[2].slice(0, NUM_POSITIONS - 1)
+
+      expect(luValidations.isValidFieldingLineup(testPlayers, fieldingLineup)).toBeFalsy()
     })
   })
 })
 
 describe('isPrintViewAllowed', () => {
-  const rotatedFieldingLineupWithAllPlayersInOutfield = (): Array<Array<Player>> => {
-    const fieldingLineup = initTestFieldingLineup(new Array<Array<Player>>(NUM_INNINGS))
-    for (let i = 1; i < NUM_INNINGS; i++) {
-      const inningFieldingLineup = fieldingLineup[i - 1]
-      const shiftAmount = 3
-      const newHead = inningFieldingLineup.slice(-shiftAmount)
-      fieldingLineup[i] = [...newHead, ...inningFieldingLineup.slice(0, -shiftAmount)]
-    }
-    return fieldingLineup
-  }
-
   it('fails when a structural check fails, regardless of which rules are enabled', () => {
     expect(
       luValidations.isPrintViewAllowed(
         testPlayers,
         testIncompleteBattingLineup,
-        testCompleteFieldingLineup,
+        rotatedFieldingLineup(),
         { outfieldAssignment: false }
       )
     ).toBeFalsy()
@@ -232,7 +170,7 @@ describe('isPrintViewAllowed', () => {
       luValidations.isPrintViewAllowed(
         testPlayers,
         testCompleteBattingLineup,
-        testCompleteFieldingLineup,
+        playerAlwaysPitching(),
         { outfieldAssignment: false }
       )
     ).toBeTruthy()
@@ -243,7 +181,7 @@ describe('isPrintViewAllowed', () => {
       luValidations.isPrintViewAllowed(
         testPlayers,
         testCompleteBattingLineup,
-        testCompleteFieldingLineup,
+        playerAlwaysPitching(),
         { outfieldAssignment: true }
       )
     ).toBeFalsy()
@@ -254,7 +192,7 @@ describe('isPrintViewAllowed', () => {
       luValidations.isPrintViewAllowed(
         testPlayers,
         testCompleteBattingLineup,
-        rotatedFieldingLineupWithAllPlayersInOutfield(),
+        rotatedFieldingLineup(),
         { outfieldAssignment: true }
       )
     ).toBeTruthy()
